@@ -14,11 +14,11 @@ let Content = (props) => {
     );
   } else if (props.gameState == 'started') {
     return (
-      <p>A game has already started. You missed it.</p>
+      <p>A game already started. You missed it. :(</p>
     );
   } else {
     return (
-      <p>There is no game right now.</p>
+      <p>There's no game right now.</p>
     );
   }
 };
