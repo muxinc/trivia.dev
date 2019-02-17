@@ -1,0 +1,17 @@
+# Don't check auto-generated stuff into git
+coverage
+node_modules
+stats.json
+*.json.gzip
+karma-*
+test-release
+built
+dist
+*iml
+
+# Cruft
+.DS_Store
+npm-debug.log
+yarn-error.log
+.idea
+*.swp
