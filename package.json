@@ -10,5 +10,10 @@
   "main": "pages/index.js",
   "repository": "git@github.com:muxinc/trivia.dev.git",
   "author": "heff <git@heff.me>",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "dev": "next",
+    "build": "next build",
+    "start": "next start"
+  }
 }

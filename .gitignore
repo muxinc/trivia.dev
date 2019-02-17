@@ -1,13 +1,7 @@
 # Don't check auto-generated stuff into git
 coverage
 node_modules
-stats.json
-*.json.gzip
-karma-*
-test-release
-built
-dist
-*iml
+.next
 
 # Cruft
 .DS_Store
