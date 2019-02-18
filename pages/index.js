@@ -18,23 +18,44 @@ let Content = props => {
 };
 
 class Index extends React.Component {
-  async componentDidMount() {
-    const { firebase, authProvider, db } = await initialize();
-
-    console.log(firebase.auth().currentUser);
-    if (!firebase.auth().currentUser) {
-      await firebase
-        .auth()
-        .setPersistence(firebase.auth.Auth.Persistence.SESSION);
-      const session = await firebase.auth().signInWithPopup(authProvider);
-      console.log(session);
-    }
+  constructor(props) {
+    super(props);
+    this.state = { currentUser: undefined };
   }
+  async componentDidMount() {
+    const { firebase } = await initialize();
+    this.firebase = firebase;
+  }
+
+  login = async () => {
+    const authProvider = new this.firebase.auth.GithubAuthProvider();
+
+    await this.firebase
+      .auth()
+      .setPersistence(this.firebase.auth.Auth.Persistence.SESSION);
+
+    const session = await this.firebase.auth().signInWithPopup(authProvider);
+
+    this.setState({
+      currentUser: {
+        username: session.additionalUserInfo.username,
+        email: session.user.email,
+        name: session.user.displayName,
+      },
+    });
+    console.log(session);
+  };
 
   render() {
     return (
       <div>
         <Title>Welcome to trivia.dev!</Title>
+        {!this.state.currentUser && (
+          <button onClick={this.login}>Log in with Github</button>
+        )}
+        {this.state.currentUser && (
+          <p>Oh hai, {this.state.currentUser.username}</p>
+        )}
         <Content />
       </div>
     );
