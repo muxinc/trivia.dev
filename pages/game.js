@@ -1,13 +1,14 @@
 import React from 'react';
-import styled from 'styled-components'
+import styled from 'styled-components';
+import { db } from '../lib/firebase';
 
-const GameStarting = () => (
-  <p>The game is starting soon...</p>
-);
+// const GameStarting = () => {
+//   return <p>The game is starting soon...</p>;
+// };
 
-let Content = (props) => {
+let Content = props => {
   if (props.gameState == 'started') {
-
+    return <p>Heres the game</p>;
   } else {
     return GameStarting;
   }
@@ -15,7 +16,7 @@ let Content = (props) => {
 
 const Game = () => (
   <div>
-    <Content />
+    <p>The game is starting soon...</p>
   </div>
 );
 

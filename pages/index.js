@@ -11,9 +11,9 @@ let Content = props => {
   if (props.gameState == 'starting') {
     return <p>Enter your name</p>;
   } else if (props.gameState == 'started') {
-    return <p>A game already started. You missed it. :(</p>;
+    return <p>A game already started</p>;
   } else {
-    return <p>There's no game right now.</p>;
+    return <p>There is no game right now</p>;
   }
 };
 
@@ -23,8 +23,9 @@ class Index extends React.Component {
     this.state = { currentUser: undefined };
   }
   async componentDidMount() {
-    const { firebase } = await initialize();
+    const { firebase, db } = await initialize();
     this.firebase = firebase;
+    this.db = db;
   }
 
   login = async () => {
@@ -33,17 +34,39 @@ class Index extends React.Component {
     await this.firebase
       .auth()
       .setPersistence(this.firebase.auth.Auth.Persistence.SESSION);
+    //
+    // const session = await this.firebase.auth().signInWithPopup(authProvider);
 
-    const session = await this.firebase.auth().signInWithPopup(authProvider);
+    const querySnapshot = await this.db
+      .collection('currentGame')
+      .get('players');
 
-    this.setState({
-      currentUser: {
-        username: session.additionalUserInfo.username,
-        email: session.user.email,
-        name: session.user.displayName,
-      },
-    });
-    console.log(session);
+    console.log(querySnapshot);
+
+    // querySnapshot.forEach(doc => {
+    //   console.log(doc.data());
+    // });
+
+    // this.db
+    //   .collection('currentGame').get()
+    //   .players.add({
+    //     username: session.additionalUserInfo.username,
+    //   })
+    //   .then(function(docRef) {
+    //     console.log('Document written with ID: ', docRef.id);
+    //   })
+    //   .catch(function(error) {
+    //     console.error('Error adding document: ', error);
+    //   });
+
+    // this.setState({
+    //   currentUser: {
+    //     username: session.additionalUserInfo.username,
+    //     email: session.user.email,
+    //     name: session.user.displayName,
+    //   },
+    // });
+    // console.log(session);
   };
 
   render() {
