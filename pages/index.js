@@ -1,51 +1,44 @@
 import React from 'react';
-import Link from 'next/link';
-import styled from 'styled-components'
+import styled from 'styled-components';
+import initialize from '../lib/firebase';
 
 const Title = styled.h1`
   font-size: 50px;
 `;
 
 // nogame | starting | started
-let Content = (props) => {
+let Content = props => {
   if (props.gameState == 'starting') {
-    return (
-      <p>Enter your name</p>
-    );
+    return <p>Enter your name</p>;
   } else if (props.gameState == 'started') {
-    return (
-      <p>A game already started. You missed it. :(</p>
-    );
+    return <p>A game already started. You missed it. :(</p>;
   } else {
-    return (
-      <p>There's no game right now.</p>
-    );
+    return <p>There's no game right now.</p>;
   }
 };
 
-const Index = () => (
-  <div>
-    <Title>Welcome to trivia.dev!</Title>
-    <Content />
-  </div>
-);
+class Index extends React.Component {
+  async componentDidMount() {
+    const { firebase, authProvider, db } = await initialize();
+
+    console.log(firebase.auth().currentUser);
+    if (!firebase.auth().currentUser) {
+      await firebase
+        .auth()
+        .setPersistence(firebase.auth.Auth.Persistence.SESSION);
+      const session = await firebase.auth().signInWithPopup(authProvider);
+      console.log(session);
+    }
+  }
+
+  render() {
+    return (
+      <div>
+        <Title>Welcome to trivia.dev!</Title>
+        <Content />
+      </div>
+    );
+  }
+}
 
 export default Index;
-
-// export default class extends React.Component {
-//
-//   static async getInitialProps ({ query }) {
-//     const { p } = query
-//     const stories = await getStories('topstories', { page })
-//     return { page, stories }
-//   }
-//
-//   render () {
-//     const { page, url, stories } = this.props
-//     const offset = (page - 1) * 30
-//     return <Page>
-//       <Stories page={page} offset={offset} stories={stories} />
-//     </Page>
-//   }
-//
-// }
