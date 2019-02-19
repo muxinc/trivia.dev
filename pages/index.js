@@ -30,6 +30,8 @@ class Index extends React.Component {
       .where('state', '==', 'open')
       .limit(1)
       .onSnapshot(querySnapshot => {
+        console.log('game watcher');
+
         let gameId;
         querySnapshot.forEach(function(doc) {
           gameId = doc.id;
@@ -87,36 +89,49 @@ class Index extends React.Component {
   };
 
   render() {
+    const currentUser = this.state.currentUser;
+    const currentGameId = this.state.currentGameId;
+    const currentGame = this.state.currentGame;
+    const currentQuestion = currentGame && currentGame.currentQuestion;
+
+    let answers = [];
+    if (currentQuestion) {
+      currentQuestion.answers.forEach((answer, i) => {
+        answers.push(<p key={i}>{answer}</p>);
+      });
+    }
+
     return (
       <div>
         <Title>Welcome to trivia.dev!</Title>
 
-        {!this.state.currentUser && (
+        {!currentUser && (
           <button onClick={this.login}>Log in with Github</button>
         )}
 
-        {this.state.currentUser && (
-          <p>Oh hai, {this.state.currentUser.username}</p>
-        )}
+        {currentUser && <p>Oh hai, {currentUser.username}</p>}
 
-        {this.state.currentUser && !this.state.currentGameId && (
+        {currentUser && !currentGameId && (
           <p>
             There's no game starting right now. Try back when a show is
             scheduled.
           </p>
         )}
 
-        {this.state.currentUser &&
-          this.state.currentGameId &&
-          this.state.currentGame.state == 'open' && (
-            <p>You're in the game! The game will start soon!</p>
-          )}
+        {currentUser && currentGameId && currentGame.state == 'open' && (
+          <p>You're in the game! The game will start soon!</p>
+        )}
 
-        {this.state.currentUser &&
-          this.state.currentGameId &&
-          this.state.currentGame.state == 'started' && (
-            <p>You're in the game!</p>
-          )}
+        {currentUser && currentGameId && currentGame.state == 'started' && (
+          <p>You're in the game!</p>
+        )}
+
+        {currentQuestion && (
+          <div>
+            <p>{currentQuestion.question}</p>
+            {answers}
+          </div>
+        )}
       </div>
     );
   }
