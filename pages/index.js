@@ -89,17 +89,8 @@ class Index extends React.Component {
   };
 
   render() {
-    const currentUser = this.state.currentUser;
-    const currentGameId = this.state.currentGameId;
-    const currentGame = this.state.currentGame;
+    const { currentUser, currentGameId, currentGame } = this.state;
     const currentQuestion = currentGame && currentGame.currentQuestion;
-
-    let answers = [];
-    if (currentQuestion) {
-      currentQuestion.answers.forEach((answer, i) => {
-        answers.push(<p key={i}>{answer}</p>);
-      });
-    }
 
     return (
       <div>
@@ -129,7 +120,9 @@ class Index extends React.Component {
         {currentQuestion && (
           <div>
             <p>{currentQuestion.question}</p>
-            {answers}
+            {currentQuestion.answers.map((answer, i) => (
+              <p key={i}>{answer}</p>
+            ))}
           </div>
         )}
       </div>
