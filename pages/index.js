@@ -1,9 +1,76 @@
 import React from 'react';
 import styled from 'styled-components';
 import initialize from '../lib/firebase';
+import initPlayer from '../lib/player';
+import Head from 'next/head';
 
-const Title = styled.h1`
-  font-size: 50px;
+const GameFrame = styled('div')`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  let: 0;
+  background-color: #333;
+  z-index: -1;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+`;
+
+const Video = styled('video')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  z-index: -1;
+`;
+
+const TitleBar = styled.div`
+  box-sizing: border-box;
+  padding: 7px 5px;
+  font-size: 14px;
+  line-height: 16px;
+  text-align: right;
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+`;
+
+const LoginModal = styled('div')`
+  position: relative;
+  margin: 50px 20px;
+  background-color: #fff;
+  border-radius: 5px;
+  padding: 50px 20px;
+
+  button {
+    border: 1px solid #000;
+    font-size: 16px;
+    border-radius: 5px;
+  }
+`;
+
+const QuestionModal = styled('div')`
+  position: relative;
+  margin: 50px 20px;
+  background-color: #fff;
+  border-radius: 5px;
+  padding: 20px 20px;
+
+  p {
+    font-size: 20px;
+  }
+
+  button {
+    display: block;
+    width: 100%;
+    padding: 0 10px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    line-height: 36px;
+    border: 1px solid #000;
+    border-radius: 5px;
+  }
 `;
 
 class Index extends React.Component {
@@ -17,6 +84,9 @@ class Index extends React.Component {
 
   componentDidMount() {
     this.gameWatcher();
+    initPlayer(
+      'https://akamaibroadcasteruseast.akamaized.net/cmaf/live/657078/akasource/out.mpd'
+    );
   }
 
   async gameWatcher() {
@@ -39,10 +109,10 @@ class Index extends React.Component {
 
         if (gameId) {
           console.log('gameId', gameId);
-          unsubscribeToGames();
           this.setState({
             currentGameId: gameId,
           });
+          unsubscribeToGames();
           // Subscribe to game updates
           this.subscribeToGame();
         }
@@ -93,11 +163,35 @@ class Index extends React.Component {
     const currentQuestion = currentGame && currentGame.currentQuestion;
 
     return (
-      <div>
-        <Title>Welcome to trivia.dev!</Title>
+      <GameFrame>
+        <Head>
+          <title>My page title</title>
+          <meta
+            name="viewport"
+            content="initial-scale=1.0, width=device-width"
+          />
+          <script src="http://reference.dashif.org/dash.js/nightly/dist/dash.all.min.js" />
+        </Head>
+        <style jsx global>{`
+          html,
+          body {
+            padding: 0;
+            margin: 0;
+          }
+          * {
+            box-sizing: border-box;
+          }
+        `}</style>
+
+        <Video src="" controls muted autoplay />
+
+        <TitleBar>trivia.dev</TitleBar>
 
         {!currentUser && (
-          <button onClick={this.login}>Log in with Github</button>
+          <LoginModal>
+            <p>Log in to play.</p>
+            <button onClick={this.login}>Log in with Github</button>
+          </LoginModal>
         )}
 
         {currentUser && <p>Oh hai, {currentUser.username}</p>}
@@ -113,19 +207,17 @@ class Index extends React.Component {
           <p>You're in the game! The game will start soon!</p>
         )}
 
-        {currentUser && currentGameId && currentGame.state == 'started' && (
-          <p>You're in the game!</p>
-        )}
-
         {currentQuestion && (
-          <div>
-            <p>{currentQuestion.question}</p>
+          <QuestionModal>
+            <p>
+              <strong>Q:</strong> {currentQuestion.question}
+            </p>
             {currentQuestion.answers.map((answer, i) => (
-              <p key={i}>{answer}</p>
+              <button key={i}>{answer}</button>
             ))}
-          </div>
+          </QuestionModal>
         )}
-      </div>
+      </GameFrame>
     );
   }
 }
