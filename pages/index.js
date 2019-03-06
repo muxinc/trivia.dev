@@ -97,7 +97,7 @@ class Index extends React.Component {
     // Listen for an open game
     let unsubscribeToGames = this.db
       .collection('games')
-      .where('state', '==', 'started')
+      .where('state', '==', 'open')
       .limit(1)
       .onSnapshot(querySnapshot => {
         console.log('game watcher');
