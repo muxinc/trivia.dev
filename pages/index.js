@@ -1,40 +1,12 @@
 import React from 'react';
 import styled from 'styled-components';
 import initialize from '../lib/firebase';
-import initPlayer from '../lib/player';
+// import initPlayer from '../lib/player';
 import Head from 'next/head';
-
-const GameFrame = styled('div')`
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  let: 0;
-  background-color: #333;
-  z-index: -1;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-`;
-
-const Video = styled('video')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: #000;
-  z-index: -1;
-`;
-
-const TitleBar = styled.div`
-  box-sizing: border-box;
-  padding: 7px 5px;
-  font-size: 14px;
-  line-height: 16px;
-  text-align: right;
-  color: #fff;
-  background-color: rgba(255, 255, 255, 0.1);
-  text-transform: uppercase;
-`;
+import GameFrame from '../components/GameFrame';
+import VideoPlane from '../components/VideoPlane';
+import TitleBar from '../components/TitleBar';
+import AnswerButton from '../components/AnswerButton';
 
 const LoginModal = styled('div')`
   position: relative;
@@ -62,14 +34,6 @@ const QuestionModal = styled('div')`
   }
 
   button {
-    display: block;
-    width: 100%;
-    padding: 0 10px;
-    margin-bottom: 10px;
-    font-size: 16px;
-    line-height: 36px;
-    border: 1px solid #000;
-    border-radius: 5px;
   }
 `;
 
@@ -83,60 +47,7 @@ class Index extends React.Component {
   }
 
   componentDidMount() {
-    this.gameWatcher();
-    initPlayer(
-      'https://akamaibroadcasteruseast.akamaized.net/cmaf/live/657078/akasource/out.mpd'
-    );
-  }
-
-  async gameWatcher() {
-    const { firebase, db } = await initialize();
-    this.firebase = firebase;
-    this.db = db;
-
-    // Listen for an open game
-    let unsubscribeToGames = this.db
-      .collection('games')
-      .where('state', '==', 'open')
-      .limit(1)
-      .onSnapshot(querySnapshot => {
-        console.log('game watcher');
-
-        let gameId;
-        querySnapshot.forEach(function(doc) {
-          gameId = doc.id;
-        });
-
-        if (gameId) {
-          console.log('gameId', gameId);
-          this.setState({
-            currentGameId: gameId,
-          });
-          unsubscribeToGames();
-          // Subscribe to game updates
-          this.subscribeToGame();
-        }
-      });
-  }
-
-  subscribeToGame() {
-    console.log('this.state.currentGameId', this.state.currentGameId);
-
-    this.unsubscribeFromGame = this.db
-      .collection('games')
-      .doc(this.state.currentGameId)
-      .onSnapshot(
-        {
-          // Listen for document metadata changes
-          includeMetadataChanges: true,
-        },
-        doc => {
-          console.log(doc.data());
-          this.setState({
-            currentGame: doc.data(),
-          });
-        }
-      );
+    this.gameFinder();
   }
 
   login = async () => {
@@ -153,14 +64,102 @@ class Index extends React.Component {
         username: session.additionalUserInfo.username,
         email: session.user.email,
         name: session.user.displayName,
+        id: session.user.uid,
       },
     });
-    console.log(session);
   };
 
+  async gameFinder() {
+    const { firebase, db } = await initialize();
+    this.firebase = firebase;
+    this.db = db;
+
+    // Listen for an open game
+    let stopListeningForAGame = this.db
+      .collection('games')
+      .where('state', '==', 'open')
+      .limit(1)
+      .onSnapshot(querySnapshot => {
+        console.log('Game Listener');
+
+        // Use the latest open game ID
+        let gameId;
+        querySnapshot.forEach(function(doc) {
+          gameId = doc.id;
+        });
+
+        if (gameId) {
+          stopListeningForAGame();
+          this.setState({
+            currentGameId: gameId,
+          });
+          // Subscribe to game updates
+          this.subscribeToGame();
+        }
+      });
+  }
+
+  subscribeToGame() {
+    let gameRef = this.db.collection('games').doc(this.state.currentGameId);
+
+    this.unsubscribeFromGame = gameRef.onSnapshot(
+      {
+        // Listen for document metadata changes
+        includeMetadataChanges: true,
+      },
+      doc => {
+        this.setState({
+          gameRef: gameRef,
+          playerAnswersRef: gameRef.collection('playerAnswers'),
+          currentGameData: doc.data(),
+          // // Fake Game
+          // currentGameData: {
+          //   created: 'now',
+          //   state: 'open',
+          //   currentQuestion: {
+          //     index: 0,
+          //     question: 'What is my favorite color?',
+          //     answers: ['blue', 'green', 'clear'],
+          //   },
+          // },
+        });
+      }
+    );
+  }
+
+  // Submit an answer for the user.
+  // Record can include the GameID, UserID, and answer index.
+  // Only the first submitted answer will be used.
+  // The UI should not allow changes, and should reflect the first answer.
+  submitAnswer(answerIndex) {
+    this.state.playerAnswersRef
+      .add({
+        userId: this.state.currentUser.id,
+        question: this.state.currentGameData.currentQuestion.index,
+        answer: answerIndex,
+      })
+      .then(docRef => {
+        this.setState({
+          currentAnswer: answerIndex,
+        });
+        console.log('Submitted Answer. Document written with ID: ', docRef.id);
+      })
+      .catch(error => {
+        alert('Error adding answer');
+        console.error('Error adding document: ', error);
+      });
+  }
+
   render() {
-    const { currentUser, currentGameId, currentGame } = this.state;
-    const currentQuestion = currentGame && currentGame.currentQuestion;
+    const {
+      currentUser,
+      currentGameId,
+      currentGameData,
+      userAnswers,
+    } = this.state;
+    const currentQuestion = currentGameData && currentGameData.currentQuestion;
+    const currentAnswer = this.state.currentAnswer;
+    const answered = currentAnswer >= 0;
 
     return (
       <GameFrame>
@@ -170,7 +169,6 @@ class Index extends React.Component {
             name="viewport"
             content="initial-scale=1.0, width=device-width"
           />
-          <script src="http://reference.dashif.org/dash.js/nightly/dist/dash.all.min.js" />
         </Head>
         <style jsx global>{`
           html,
@@ -183,7 +181,7 @@ class Index extends React.Component {
           }
         `}</style>
 
-        <Video src="" controls muted autoplay />
+        <VideoPlane src={this.state.streamURL} controls muted autoplay />
 
         <TitleBar>trivia.dev</TitleBar>
 
@@ -203,7 +201,7 @@ class Index extends React.Component {
           </p>
         )}
 
-        {currentUser && currentGameId && currentGame.state == 'open' && (
+        {currentUser && currentGameId && currentGameData.state == 'open' && (
           <p>You're in the game! The game will start soon!</p>
         )}
 
@@ -213,7 +211,15 @@ class Index extends React.Component {
               <strong>Q:</strong> {currentQuestion.question}
             </p>
             {currentQuestion.answers.map((answer, i) => (
-              <button key={i}>{answer}</button>
+              <AnswerButton
+                selected={currentAnswer === i}
+                onClick={() => {
+                  !answered && this.submitAnswer(i);
+                }}
+                key={i}
+              >
+                {answer}
+              </AnswerButton>
             ))}
           </QuestionModal>
         )}
