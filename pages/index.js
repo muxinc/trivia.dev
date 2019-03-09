@@ -14,6 +14,7 @@ const LoginModal = styled('div')`
   background-color: #fff;
   border-radius: 5px;
   padding: 50px 20px;
+  color: #000;
 
   button {
     border: 1px solid #000;
@@ -28,6 +29,7 @@ const QuestionModal = styled('div')`
   background-color: #fff;
   border-radius: 5px;
   padding: 20px 20px;
+  color: #000;
 
   p {
     font-size: 20px;
@@ -90,17 +92,14 @@ class Index extends React.Component {
 
         if (gameId) {
           stopListeningForAGame();
-          this.setState({
-            currentGameId: gameId,
-          });
           // Subscribe to game updates
-          this.subscribeToGame();
+          this.subscribeToGame(gameId);
         }
       });
   }
 
-  subscribeToGame() {
-    let gameRef = this.db.collection('games').doc(this.state.currentGameId);
+  subscribeToGame(gameId) {
+    let gameRef = this.db.collection('games').doc(gameId);
 
     this.unsubscribeFromGame = gameRef.onSnapshot(
       {
@@ -109,6 +108,7 @@ class Index extends React.Component {
       },
       doc => {
         this.setState({
+          currentGameId: gameId,
           gameRef: gameRef,
           playerAnswersRef: gameRef.collection('playerAnswers'),
           currentGameData: doc.data(),
@@ -175,6 +175,7 @@ class Index extends React.Component {
           body {
             padding: 0;
             margin: 0;
+            color: #fff;
           }
           * {
             box-sizing: border-box;
@@ -205,7 +206,7 @@ class Index extends React.Component {
           <p>You're in the game! The game will start soon!</p>
         )}
 
-        {currentQuestion && (
+        {currentQuestion && typeof currentQuestion.answer == 'undefined' && (
           <QuestionModal>
             <p>
               <strong>Q:</strong> {currentQuestion.question}
@@ -222,6 +223,18 @@ class Index extends React.Component {
               </AnswerButton>
             ))}
           </QuestionModal>
+        )}
+
+        {currentQuestion && typeof currentQuestion.answer != 'undefined' && (
+          <div>
+            <p>Q: {currentQuestion.question}</p>
+            <p>Here are the results!</p>
+            {currentQuestion.results.map((result, i) => (
+              <div key={i}>
+                {currentQuestion.answers[i]} | {result}
+              </div>
+            ))}
+          </div>
         )}
       </GameFrame>
     );
