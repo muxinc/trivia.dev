@@ -17,6 +17,12 @@ class Index extends React.Component {
     const { firebase, db } = await initialize();
     this.firebase = firebase;
     this.db = db;
+    console.log(firebase.auth().currentUser);
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        this.setupUser(user);
+      }
+    });
   }
 
   login = async () => {
@@ -27,18 +33,28 @@ class Index extends React.Component {
       .setPersistence(this.firebase.auth.Auth.Persistence.LOCAL);
 
     const session = await this.firebase.auth().signInWithPopup(authProvider);
+    this.setupUser(session.user);
+  };
 
-    let querySnapshot = await this.db.collection('games').get();
+  async setupUser(user) {
+    let gameIds = await this.getGameIds();
 
     this.setState({
       currentUser: {
-        username: session.additionalUserInfo.username,
-        email: session.user.email,
-        name: session.user.displayName,
+        // username: session.additionalUserInfo.username,
+        email: user.email,
+        name: user.displayName,
       },
-      games: querySnapshot.docs,
+      gameIds: gameIds,
     });
-  };
+  }
+
+  async getGameIds() {
+    let gamesQuerySnapshot = await this.db.collection('games').get();
+    return gamesQuerySnapshot.docs.map(gameDocSnap => {
+      return gameDocSnap.id;
+    });
+  }
 
   createGame() {
     this.db
@@ -50,7 +66,8 @@ class Index extends React.Component {
       .then(docRef => {
         console.log(docRef);
         this.setState({
-          currentGameRef: docRef,
+          currentGameId: docRef.id,
+          questions: [],
         });
       })
       .catch(error => {
@@ -59,17 +76,21 @@ class Index extends React.Component {
       });
   }
 
-  async selectGame(gameRef) {
-    let questions = await this.getQuestions(gameRef);
+  async selectGame(gameId) {
+    let questions = await this.getQuestions(gameId);
 
     this.setState({
-      currentGameRef: gameRef,
+      currentGameId: gameId,
       questions: questions,
     });
   }
 
-  async getQuestions(gameRef) {
-    let querySnapshot = await gameRef.collection('questions').get();
+  async getQuestions(gameId) {
+    let querySnapshot = await this.db
+      .collection('games')
+      .doc(gameId)
+      .collection('questions')
+      .get();
     let questions = [];
 
     querySnapshot.docs.forEach((doc, i) => {
@@ -81,14 +102,16 @@ class Index extends React.Component {
   }
 
   async syncQuestions() {
-    let questions = await this.getQuestions(this.state.currentGameRef);
+    let questions = await this.getQuestions(this.state.currentGameId);
     this.setState({
       questions: questions,
     });
   }
 
   openGame() {
-    this.state.currentGameRef
+    this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
       .update({
         state: 'open',
       })
@@ -102,7 +125,9 @@ class Index extends React.Component {
   }
 
   startGame() {
-    this.state.currentGameRef
+    this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
       .update({
         state: 'started',
       })
@@ -116,7 +141,9 @@ class Index extends React.Component {
   }
 
   closeGame() {
-    this.state.currentGameRef
+    this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
       .update({
         state: 'closed',
       })
@@ -130,7 +157,9 @@ class Index extends React.Component {
   }
 
   async createQuestion(question, answers) {
-    this.state.currentGameRef
+    this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
       .collection('questions')
       .add({
         created: this.firebase.firestore.FieldValue.serverTimestamp(),
@@ -156,8 +185,6 @@ class Index extends React.Component {
   }
 
   updateQuestion(id) {
-    console.log(id);
-
     let details;
 
     this.state.questions.forEach(question => {
@@ -166,7 +193,9 @@ class Index extends React.Component {
       }
     });
 
-    this.state.currentGameRef
+    this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
       .collection('questions')
       .doc(id)
       .update(details)
@@ -181,7 +210,9 @@ class Index extends React.Component {
   }
 
   deleteQuestion(id) {
-    this.state.currentGameRef
+    this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
       .collection('questions')
       .doc(id)
       .delete()
@@ -196,7 +227,9 @@ class Index extends React.Component {
   }
 
   sendQuestion() {
-    this.state.currentGameRef
+    this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
       .update({
         currentQuestion: {
           index: 0,
@@ -214,7 +247,9 @@ class Index extends React.Component {
   }
 
   showResults() {
-    this.state.currentGameRef
+    this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
       .update({
         'currentQuestion.answer': 1,
         'currentQuestion.results': [100, 2, 50],
@@ -231,10 +266,9 @@ class Index extends React.Component {
   render() {
     const {
       currentUser,
-      currentGameRef,
       currentGameId,
       currentGame,
-      games,
+      gameIds,
       questions,
     } = this.state;
     const currentQuestion = currentGame && currentGame.currentQuestion;
@@ -266,29 +300,29 @@ class Index extends React.Component {
           </>
         )}
 
-        {currentUser && !currentGameRef && (
+        {currentUser && !currentGameId && (
           <div>
-            <p>Oh hai, {currentUser.username}</p>
+            <p>Oh hai, {currentUser.name}</p>
             <button onClick={this.createGame.bind(this)}>Create Game</button>
-            {games.map(game => (
-              <div key={game.id}>
+            {gameIds.map(gameId => (
+              <div key={gameId}>
                 <a
                   onClick={e => {
-                    this.selectGame(game.ref);
+                    this.selectGame(gameId);
                   }}
                 >
-                  {game.id}
+                  {gameId}
                 </a>
               </div>
             ))}
           </div>
         )}
 
-        {currentUser && currentGameRef && (
+        {currentUser && currentGameId && (
           <div>
             <p>Ok we are in a game</p>
 
-            <p>Oh hai, {currentUser.username}</p>
+            <p>Oh hai, {currentUser.name}</p>
             <button onClick={this.openGame.bind(this)}>Open Game</button>
             <button onClick={this.startGame.bind(this)}>Start Game</button>
             <button onClick={this.sendQuestion.bind(this)}>
@@ -296,7 +330,6 @@ class Index extends React.Component {
             </button>
             <button onClick={this.showResults.bind(this)}>Show Results</button>
             <button onClick={this.closeGame.bind(this)}>Close Game</button>
-
             {questions.map((question, i) => (
               <QuestionForm
                 key={i}
