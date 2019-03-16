@@ -60,6 +60,15 @@ class Index extends React.Component {
   }
 
   async selectGame(gameRef) {
+    let questions = await this.getQuestions(gameRef);
+
+    this.setState({
+      currentGameRef: gameRef,
+      questions: questions,
+    });
+  }
+
+  async getQuestions(gameRef) {
     let querySnapshot = await gameRef.collection('questions').get();
     let questions = [];
 
@@ -68,8 +77,12 @@ class Index extends React.Component {
       questions[i].id = doc.id;
     });
 
+    return questions;
+  }
+
+  async syncQuestions() {
+    let questions = await this.getQuestions(this.state.currentGameRef);
     this.setState({
-      currentGameRef: gameRef,
       questions: questions,
     });
   }
@@ -116,16 +129,17 @@ class Index extends React.Component {
       });
   }
 
-  createQuestion(question, answers) {
+  async createQuestion(question, answers) {
     this.state.currentGameRef
       .collection('questions')
       .add({
         created: this.firebase.firestore.FieldValue.serverTimestamp(),
-        question: question,
-        answers: answers,
+        question: '',
+        answers: [],
       })
       .then(docRef => {
         console.log('question created');
+        this.syncQuestions();
       })
       .catch(error => {
         alert('Error creating question');
@@ -142,10 +156,15 @@ class Index extends React.Component {
   }
 
   updateQuestion(id) {
-    let details = {
-      answers: [],
-    };
-    details.question = document.querySelector(`${id}-question`).value;
+    console.log(id);
+
+    let details;
+
+    this.state.questions.forEach(question => {
+      if (question.id == id) {
+        details = question;
+      }
+    });
 
     this.state.currentGameRef
       .collection('questions')
@@ -153,6 +172,7 @@ class Index extends React.Component {
       .update(details)
       .then(docRef => {
         console.log('question updated');
+        this.syncQuestions();
       })
       .catch(error => {
         alert('Error updating question');
@@ -167,6 +187,7 @@ class Index extends React.Component {
       .delete()
       .then(docRef => {
         console.log('question deleted');
+        this.syncQuestions();
       })
       .catch(error => {
         alert('Error deleting question');
@@ -283,8 +304,13 @@ class Index extends React.Component {
                 question={question}
                 handleQuestionChange={this.handleQuestionChange.bind(this)}
                 updateQuestion={this.updateQuestion.bind(this)}
+                deleteQuestion={this.deleteQuestion.bind(this)}
               />
             ))}
+
+            <button onClick={this.createQuestion.bind(this)}>
+              Add Question
+            </button>
           </div>
         )}
       </div>
