@@ -134,6 +134,7 @@ class Index extends React.Component {
   submitAnswer(answerIndex) {
     this.state.playerAnswersRef
       .add({
+        created: this.firebase.firestore.FieldValue.serverTimestamp(),
         userId: this.state.currentUser.id,
         question: this.state.currentGameData.currentQuestion.index,
         answer: answerIndex,

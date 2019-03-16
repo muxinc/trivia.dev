@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import initialize from '../../lib/firebase';
 import Head from 'next/head';
+import QuestionForm from '../../components/QuestionForm';
 
 class Index extends React.Component {
   constructor(props) {
@@ -23,9 +24,11 @@ class Index extends React.Component {
 
     await this.firebase
       .auth()
-      .setPersistence(this.firebase.auth.Auth.Persistence.SESSION);
+      .setPersistence(this.firebase.auth.Auth.Persistence.LOCAL);
 
     const session = await this.firebase.auth().signInWithPopup(authProvider);
+
+    let querySnapshot = await this.db.collection('games').get();
 
     this.setState({
       currentUser: {
@@ -33,8 +36,8 @@ class Index extends React.Component {
         email: session.user.email,
         name: session.user.displayName,
       },
+      games: querySnapshot.docs,
     });
-    console.log(session);
   };
 
   createGame() {
@@ -54,6 +57,21 @@ class Index extends React.Component {
         alert('Error adding game');
         console.error('Error adding document: ', error);
       });
+  }
+
+  async selectGame(gameRef) {
+    let querySnapshot = await gameRef.collection('questions').get();
+    let questions = [];
+
+    querySnapshot.docs.forEach((doc, i) => {
+      questions[i] = doc.data();
+      questions[i].id = doc.id;
+    });
+
+    this.setState({
+      currentGameRef: gameRef,
+      questions: questions,
+    });
   }
 
   openGame() {
@@ -98,6 +116,64 @@ class Index extends React.Component {
       });
   }
 
+  createQuestion(question, answers) {
+    this.state.currentGameRef
+      .collection('questions')
+      .add({
+        created: this.firebase.firestore.FieldValue.serverTimestamp(),
+        question: question,
+        answers: answers,
+      })
+      .then(docRef => {
+        console.log('question created');
+      })
+      .catch(error => {
+        alert('Error creating question');
+        console.error('Error creating question', error);
+      });
+  }
+
+  handleQuestionChange(i, details) {
+    let questions = this.state.questions;
+    questions[i] = details;
+    this.setState({
+      questions: questions,
+    });
+  }
+
+  updateQuestion(id) {
+    let details = {
+      answers: [],
+    };
+    details.question = document.querySelector(`${id}-question`).value;
+
+    this.state.currentGameRef
+      .collection('questions')
+      .doc(id)
+      .update(details)
+      .then(docRef => {
+        console.log('question updated');
+      })
+      .catch(error => {
+        alert('Error updating question');
+        console.error('Error updating question', error);
+      });
+  }
+
+  deleteQuestion(id) {
+    this.state.currentGameRef
+      .collection('questions')
+      .doc(id)
+      .delete()
+      .then(docRef => {
+        console.log('question deleted');
+      })
+      .catch(error => {
+        alert('Error deleting question');
+        console.error('Error deleting question', error);
+      });
+  }
+
   sendQuestion() {
     this.state.currentGameRef
       .update({
@@ -137,6 +213,8 @@ class Index extends React.Component {
       currentGameRef,
       currentGameId,
       currentGame,
+      games,
+      questions,
     } = this.state;
     const currentQuestion = currentGame && currentGame.currentQuestion;
 
@@ -171,6 +249,17 @@ class Index extends React.Component {
           <div>
             <p>Oh hai, {currentUser.username}</p>
             <button onClick={this.createGame.bind(this)}>Create Game</button>
+            {games.map(game => (
+              <div key={game.id}>
+                <a
+                  onClick={e => {
+                    this.selectGame(game.ref);
+                  }}
+                >
+                  {game.id}
+                </a>
+              </div>
+            ))}
           </div>
         )}
 
@@ -186,6 +275,16 @@ class Index extends React.Component {
             </button>
             <button onClick={this.showResults.bind(this)}>Show Results</button>
             <button onClick={this.closeGame.bind(this)}>Close Game</button>
+
+            {questions.map((question, i) => (
+              <QuestionForm
+                key={i}
+                index={i}
+                question={question}
+                handleQuestionChange={this.handleQuestionChange.bind(this)}
+                updateQuestion={this.updateQuestion.bind(this)}
+              />
+            ))}
           </div>
         )}
       </div>
