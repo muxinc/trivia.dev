@@ -7,6 +7,7 @@ import GameFrame from '../components/GameFrame';
 import VideoPlane from '../components/VideoPlane';
 import TitleBar from '../components/TitleBar';
 import AnswerButton from '../components/AnswerButton';
+import QuestionModal from '../components/QuestionModal';
 
 const LoginModal = styled('div')`
   position: relative;
@@ -20,22 +21,6 @@ const LoginModal = styled('div')`
     border: 1px solid #000;
     font-size: 16px;
     border-radius: 5px;
-  }
-`;
-
-const QuestionModal = styled('div')`
-  position: relative;
-  margin: 50px 20px;
-  background-color: #fff;
-  border-radius: 5px;
-  padding: 20px 20px;
-  color: #000;
-
-  p {
-    font-size: 20px;
-  }
-
-  button {
   }
 `;
 
@@ -61,20 +46,31 @@ class Index extends React.Component {
 
     const session = await this.firebase.auth().signInWithPopup(authProvider);
 
+    this.setUser(session.user);
+  };
+
+  setUser(user) {
     this.setState({
       currentUser: {
-        username: session.additionalUserInfo.username,
-        email: session.user.email,
-        name: session.user.displayName,
-        id: session.user.uid,
+        // username: session.additionalUserInfo.username,
+        email: user.email,
+        name: user.displayName,
+        id: user.uid,
       },
     });
-  };
+  }
 
   async gameFinder() {
     const { firebase, db } = await initialize();
     this.firebase = firebase;
     this.db = db;
+
+    // If they're already logged in...
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        this.setUser(user);
+      }
+    });
 
     // Listen for an open game
     let stopListeningForAGame = this.db
@@ -107,6 +103,8 @@ class Index extends React.Component {
         includeMetadataChanges: true,
       },
       doc => {
+        console.log('Game Update');
+
         this.setState({
           currentGameId: gameId,
           gameRef: gameRef,
@@ -194,7 +192,7 @@ class Index extends React.Component {
           </LoginModal>
         )}
 
-        {currentUser && <p>Oh hai, {currentUser.username}</p>}
+        {currentUser && <p>Oh hai, {currentUser.name}</p>}
 
         {currentUser && !currentGameId && (
           <p>
@@ -204,26 +202,15 @@ class Index extends React.Component {
         )}
 
         {currentUser && currentGameId && currentGameData.state == 'open' && (
-          <p>You're in the game! The game will start soon!</p>
+          <p>You're in the game! ({currentGameId}) The game will start soon!</p>
         )}
 
-        {currentQuestion && typeof currentQuestion.answer == 'undefined' && (
-          <QuestionModal>
-            <p>
-              <strong>Q:</strong> {currentQuestion.question}
-            </p>
-            {currentQuestion.answers.map((answer, i) => (
-              <AnswerButton
-                selected={currentAnswer === i}
-                onClick={() => {
-                  !answered && this.submitAnswer(i);
-                }}
-                key={i}
-              >
-                {answer}
-              </AnswerButton>
-            ))}
-          </QuestionModal>
+        {currentQuestion && currentQuestion.expires >= Date.now() && (
+          <QuestionModal
+            currentQuestion={currentQuestion}
+            currentAnswer={currentAnswer}
+            submitAnswer={this.submitAnswer.bind(this)}
+          />
         )}
 
         {currentQuestion && typeof currentQuestion.answer != 'undefined' && (

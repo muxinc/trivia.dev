@@ -17,10 +17,11 @@ class Index extends React.Component {
     const { firebase, db } = await initialize();
     this.firebase = firebase;
     this.db = db;
-    console.log(firebase.auth().currentUser);
+
+    // If they're already logged in...
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
-        this.setupUser(user);
+        this.setUser(user);
       }
     });
   }
@@ -33,26 +34,28 @@ class Index extends React.Component {
       .setPersistence(this.firebase.auth.Auth.Persistence.LOCAL);
 
     const session = await this.firebase.auth().signInWithPopup(authProvider);
-    this.setupUser(session.user);
+    this.setUser(session.user);
   };
 
-  async setupUser(user) {
-    let gameIds = await this.getGameIds();
-
+  async setUser(user) {
     this.setState({
       currentUser: {
         // username: session.additionalUserInfo.username,
         email: user.email,
         name: user.displayName,
       },
-      gameIds: gameIds,
     });
+
+    this.getGameIds();
   }
 
   async getGameIds() {
     let gamesQuerySnapshot = await this.db.collection('games').get();
-    return gamesQuerySnapshot.docs.map(gameDocSnap => {
-      return gameDocSnap.id;
+
+    this.setState({
+      gameIds: gamesQuerySnapshot.docs.map(gameDocSnap => {
+        return gameDocSnap.id;
+      }),
     });
   }
 
@@ -64,11 +67,7 @@ class Index extends React.Component {
         state: 'new',
       })
       .then(docRef => {
-        console.log(docRef);
-        this.setState({
-          currentGameId: docRef.id,
-          questions: [],
-        });
+        this.setGameId(docRef.id);
       })
       .catch(error => {
         alert('Error adding game');
@@ -76,36 +75,31 @@ class Index extends React.Component {
       });
   }
 
-  async selectGame(gameId) {
-    let questions = await this.getQuestions(gameId);
+  async setGameId(gameId) {
+    let gameRef = this.db.collection('games').doc(gameId);
 
-    this.setState({
-      currentGameId: gameId,
-      questions: questions,
+    this.unsubscribeFromGame = gameRef.onSnapshot(doc => {
+      this.setState({
+        currentGameId: gameId,
+        currentGameData: doc.data(),
+      });
     });
-  }
 
-  async getQuestions(gameId) {
-    let querySnapshot = await this.db
-      .collection('games')
-      .doc(gameId)
+    this.unsubscribeFromQuestions = gameRef
       .collection('questions')
-      .get();
-    let questions = [];
+      .onSnapshot(querySnapshot => {
+        console.log('querySnapshot', querySnapshot);
+        let questions = [];
 
-    querySnapshot.docs.forEach((doc, i) => {
-      questions[i] = doc.data();
-      questions[i].id = doc.id;
-    });
+        querySnapshot.docs.forEach((doc, i) => {
+          questions[i] = doc.data();
+          questions[i].id = doc.id;
+        });
 
-    return questions;
-  }
-
-  async syncQuestions() {
-    let questions = await this.getQuestions(this.state.currentGameId);
-    this.setState({
-      questions: questions,
-    });
+        this.setState({
+          questions: questions,
+        });
+      });
   }
 
   openGame() {
@@ -168,7 +162,6 @@ class Index extends React.Component {
       })
       .then(docRef => {
         console.log('question created');
-        this.syncQuestions();
       })
       .catch(error => {
         alert('Error creating question');
@@ -201,7 +194,6 @@ class Index extends React.Component {
       .update(details)
       .then(docRef => {
         console.log('question updated');
-        this.syncQuestions();
       })
       .catch(error => {
         alert('Error updating question');
@@ -218,7 +210,6 @@ class Index extends React.Component {
       .delete()
       .then(docRef => {
         console.log('question deleted');
-        this.syncQuestions();
       })
       .catch(error => {
         alert('Error deleting question');
@@ -226,19 +217,32 @@ class Index extends React.Component {
       });
   }
 
-  sendQuestion() {
+  sendNextQuestion() {
+    const questions = this.state.questions;
+    let question;
+
+    for (var i = 0; i < questions.length; i++) {
+      if (!questions[i].sent) {
+        question = questions[i];
+        break;
+      }
+    }
+
     this.db
       .collection('games')
       .doc(this.state.currentGameId)
       .update({
         currentQuestion: {
-          index: 0,
-          question: 'What is my name?',
-          answers: ['bob', 'john', 'ringo'],
+          index: i,
+          question: question.question,
+          answers: question.answers,
+          expires: Date.now() + 10 * 1000,
         },
       })
       .then(docRef => {
-        console.log('question added');
+        console.log('question sent');
+        question.sent = true;
+        this.updateQuestion(question.id);
       })
       .catch(error => {
         alert('Error adding question');
@@ -247,11 +251,14 @@ class Index extends React.Component {
   }
 
   showResults() {
+    const questionIndex = this.state.currentGameData.currentQuestion.index;
+    const currentQuestion = this.state.questions[questionIndex];
+
     this.db
       .collection('games')
       .doc(this.state.currentGameId)
       .update({
-        'currentQuestion.answer': 1,
+        'currentQuestion.answer': currentQuestion.answer,
         'currentQuestion.results': [100, 2, 50],
       })
       .then(docRef => {
@@ -267,11 +274,10 @@ class Index extends React.Component {
     const {
       currentUser,
       currentGameId,
-      currentGame,
+      currentGameData,
       gameIds,
       questions,
     } = this.state;
-    const currentQuestion = currentGame && currentGame.currentQuestion;
 
     return (
       <div>
@@ -304,42 +310,59 @@ class Index extends React.Component {
           <div>
             <p>Oh hai, {currentUser.name}</p>
             <button onClick={this.createGame.bind(this)}>Create Game</button>
-            {gameIds.map(gameId => (
-              <div key={gameId}>
-                <a
-                  onClick={e => {
-                    this.selectGame(gameId);
-                  }}
-                >
-                  {gameId}
-                </a>
-              </div>
-            ))}
+            {gameIds &&
+              gameIds.map(gameId => (
+                <div key={gameId}>
+                  <a
+                    onClick={e => {
+                      this.setGameId(gameId);
+                    }}
+                  >
+                    {gameId}
+                  </a>
+                </div>
+              ))}
           </div>
         )}
 
         {currentUser && currentGameId && (
           <div>
-            <p>Ok we are in a game</p>
-
             <p>Oh hai, {currentUser.name}</p>
-            <button onClick={this.openGame.bind(this)}>Open Game</button>
-            <button onClick={this.startGame.bind(this)}>Start Game</button>
-            <button onClick={this.sendQuestion.bind(this)}>
-              Send Question
-            </button>
-            <button onClick={this.showResults.bind(this)}>Show Results</button>
-            <button onClick={this.closeGame.bind(this)}>Close Game</button>
-            {questions.map((question, i) => (
-              <QuestionForm
-                key={i}
-                index={i}
-                question={question}
-                handleQuestionChange={this.handleQuestionChange.bind(this)}
-                updateQuestion={this.updateQuestion.bind(this)}
-                deleteQuestion={this.deleteQuestion.bind(this)}
-              />
-            ))}
+            <p>Game: {currentGameId}</p>
+
+            {currentGameData.state == 'new' && (
+              <button onClick={this.openGame.bind(this)}>Open Game</button>
+            )}
+
+            {currentGameData.state == 'open' && (
+              <button onClick={this.startGame.bind(this)}>Start Game</button>
+            )}
+
+            {currentGameData.state == 'started' && (
+              <>
+                <button onClick={this.sendNextQuestion.bind(this)}>
+                  Send Next Question
+                </button>
+                <button onClick={this.showResults.bind(this)}>
+                  Show Results
+                </button>
+                <button onClick={this.closeGame.bind(this)}>Close Game</button>
+              </>
+            )}
+
+            {currentGameData.state == 'closed' && <p>This game is closed.</p>}
+
+            {questions &&
+              questions.map((question, i) => (
+                <QuestionForm
+                  key={i}
+                  index={i}
+                  question={question}
+                  handleQuestionChange={this.handleQuestionChange.bind(this)}
+                  updateQuestion={this.updateQuestion.bind(this)}
+                  deleteQuestion={this.deleteQuestion.bind(this)}
+                />
+              ))}
 
             <button onClick={this.createQuestion.bind(this)}>
               Add Question
