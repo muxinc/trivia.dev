@@ -79,22 +79,26 @@ class Index extends React.Component {
     let gameRef = this.db.collection('games').doc(gameId);
 
     this.unsubscribeFromGame = gameRef.onSnapshot(doc => {
+      console.log('game update', doc.data());
       this.setState({
         currentGameId: gameId,
         currentGameData: doc.data(),
       });
     });
 
+    // Questions are under a 'private' collection in a doc.
+    // Using a doc with an array of questions to keep ordering of questions
+    // easier, compared to each question being a doc.
+    // i.e. you can just delete a question from the middle and the
+    // indexes get updated.
     this.unsubscribeFromQuestions = gameRef
-      .collection('questions')
-      .onSnapshot(querySnapshot => {
-        console.log('querySnapshot', querySnapshot);
-        let questions = [];
-
-        querySnapshot.docs.forEach((doc, i) => {
-          questions[i] = doc.data();
-          questions[i].id = doc.id;
-        });
+      .collection('private')
+      .doc('questionsDoc')
+      .onSnapshot(doc => {
+        console.log('doc', doc);
+        console.log('doc.data()', doc.data());
+        let data = doc.data();
+        let questions = data.questions || [];
 
         this.setState({
           questions: questions,
@@ -151,22 +155,16 @@ class Index extends React.Component {
   }
 
   async createQuestion(question, answers) {
-    this.db
-      .collection('games')
-      .doc(this.state.currentGameId)
-      .collection('questions')
-      .add({
-        created: this.firebase.firestore.FieldValue.serverTimestamp(),
-        question: '',
-        answers: [],
-      })
-      .then(docRef => {
-        console.log('question created');
-      })
-      .catch(error => {
-        alert('Error creating question');
-        console.error('Error creating question', error);
-      });
+    let questions = this.state.questions || [];
+
+    questions.push({
+      question: '',
+      answers: [],
+    });
+
+    this.setState({
+      questions: questions,
+    });
   }
 
   handleQuestionChange(i, details) {
@@ -177,21 +175,15 @@ class Index extends React.Component {
     });
   }
 
-  updateQuestion(id) {
-    let details;
-
-    this.state.questions.forEach(question => {
-      if (question.id == id) {
-        details = question;
-      }
-    });
-
+  saveQuestions() {
     this.db
       .collection('games')
       .doc(this.state.currentGameId)
-      .collection('questions')
-      .doc(id)
-      .update(details)
+      .collection('private')
+      .doc('questionsDoc')
+      .update({
+        questions: this.state.questions,
+      })
       .then(docRef => {
         console.log('question updated');
       })
@@ -201,20 +193,11 @@ class Index extends React.Component {
       });
   }
 
-  deleteQuestion(id) {
-    this.db
-      .collection('games')
-      .doc(this.state.currentGameId)
-      .collection('questions')
-      .doc(id)
-      .delete()
-      .then(docRef => {
-        console.log('question deleted');
-      })
-      .catch(error => {
-        alert('Error deleting question');
-        console.error('Error deleting question', error);
-      });
+  deleteQuestion(index) {
+    let questions = this.state.questions;
+
+    questions.splice(index, 1);
+    this.saveQuestions();
   }
 
   sendNextQuestion() {
@@ -250,7 +233,7 @@ class Index extends React.Component {
       });
   }
 
-  showResults() {
+  sendResults() {
     const questionIndex = this.state.currentGameData.currentQuestion.index;
     const currentQuestion = this.state.questions[questionIndex];
 
@@ -258,11 +241,33 @@ class Index extends React.Component {
       .collection('games')
       .doc(this.state.currentGameId)
       .update({
-        'currentQuestion.answer': currentQuestion.answer,
+        'currentQuestion.answerNumber': currentQuestion.answerNumber,
         'currentQuestion.results': [100, 2, 50],
       })
       .then(docRef => {
         console.log('Added results');
+      })
+      .catch(error => {
+        alert('Error adding results');
+        console.error('Error adding results: ', error);
+      });
+  }
+
+  finishQuestion() {
+    const questionIndex = this.state.currentGameData.currentQuestion.index;
+    const currentQuestion = this.state.questions[questionIndex];
+
+    currentQuestion.finished = true;
+
+    this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
+      .update({
+        currentQuestion: null,
+      })
+      .then(docRef => {
+        console.log('Finished Question');
+        this.saveQuestions();
       })
       .catch(error => {
         alert('Error adding results');
@@ -278,6 +283,9 @@ class Index extends React.Component {
       gameIds,
       questions,
     } = this.state;
+
+    const currentQuestion = currentGameData && currentGameData.currentQuestion;
+    const currentAnswerNumber = currentQuestion && currentQuestion.answerNumber;
 
     return (
       <div>
@@ -340,12 +348,23 @@ class Index extends React.Component {
 
             {currentGameData.state == 'started' && (
               <>
-                <button onClick={this.sendNextQuestion.bind(this)}>
-                  Send Next Question
-                </button>
-                <button onClick={this.showResults.bind(this)}>
-                  Show Results
-                </button>
+                {!currentQuestion && (
+                  <button onClick={this.sendNextQuestion.bind(this)}>
+                    Send Next Question
+                  </button>
+                )}
+                {currentQuestion &&
+                  typeof currentAnswerNumber == 'undefined' && (
+                    <button onClick={this.sendResults.bind(this)}>
+                      Send Results
+                    </button>
+                  )}
+                {currentAnswerNumber > 0 && (
+                  <button onClick={this.finishQuestion.bind(this)}>
+                    Finish Question
+                  </button>
+                )}
+
                 <button onClick={this.closeGame.bind(this)}>Close Game</button>
               </>
             )}

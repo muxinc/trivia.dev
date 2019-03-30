@@ -6,15 +6,19 @@ class Index extends React.Component {
   constructor(props) {
     super(props);
 
-    this.currentAnswer = props.currentAnswer;
-    this.submitAnswer = props.submitAnswer;
-
+    this.submitAnswer = i => {
+      this.setState({
+        currentAnswer: i,
+      });
+      props.submitAnswer(i);
+    };
     this.expires = props.currentQuestion.expires;
     this.question = props.currentQuestion.question;
     this.answers = props.currentQuestion.answers;
 
     this.state = {
       expired: this.isExpired(),
+      currentAnswer: props.currentAnswer,
     };
   }
 
@@ -68,7 +72,10 @@ class Index extends React.Component {
       }
     `;
 
-    const answered = this.currentAnswer >= 0;
+    const currentAnswer = this.state.currentAnswer;
+    const answered = currentAnswer >= 0;
+
+    console.log('currentAnswer', currentAnswer);
 
     if (this.isExpired()) {
       return '';
@@ -82,7 +89,7 @@ class Index extends React.Component {
         </p>
         {this.answers.map((answer, i) => (
           <AnswerButton
-            selected={this.currentAnswer === i}
+            selected={currentAnswer === i}
             onClick={() => {
               !answered && this.submitAnswer(i);
             }}

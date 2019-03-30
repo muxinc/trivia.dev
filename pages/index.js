@@ -141,6 +141,7 @@ class Index extends React.Component {
         this.setState({
           currentAnswer: answerIndex,
         });
+        console.log('answer', answerIndex);
         console.log('Submitted Answer. Document written with ID: ', docRef.id);
       })
       .catch(error => {
@@ -155,9 +156,9 @@ class Index extends React.Component {
       currentGameId,
       currentGameData,
       userAnswers,
+      currentAnswer,
     } = this.state;
     const currentQuestion = currentGameData && currentGameData.currentQuestion;
-    const currentAnswer = this.state.currentAnswer;
     const answered = currentAnswer >= 0;
 
     return (
@@ -213,7 +214,7 @@ class Index extends React.Component {
           />
         )}
 
-        {currentQuestion && typeof currentQuestion.answer != 'undefined' && (
+        {currentQuestion && typeof currentQuestion.answerNumber != 'undefined' && (
           <div>
             <p>Q: {currentQuestion.question}</p>
             <p>Here are the results!</p>

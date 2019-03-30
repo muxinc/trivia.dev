@@ -4,9 +4,15 @@ class QuestionForm extends React.Component {
     let details = question;
     let index = this.props.index;
 
-    details.question = document.querySelector(`#${question.id}-question`).value;
-    details.answers = [0, 1, 2].map(i => {
-      return document.querySelector(`#${question.id}-answer${i}`).value;
+    console.log(question.id);
+    details.question = document.querySelector(
+      `#q-${question.id}-question`
+    ).value;
+    details.answerNumber = document.querySelector(
+      `#q-${question.id}-answerNumber`
+    ).value;
+    details.answers = [1, 2, 3].map(i => {
+      return document.querySelector(`#q-${question.id}-answerNumber${i}`).value;
     });
 
     this.props.handleQuestionChange(index, details);
@@ -15,14 +21,16 @@ class QuestionForm extends React.Component {
   render() {
     let { question, updateQuestion } = this.props;
 
-    let answerEls = [0, 1, 2].map(i => {
+    let answerEls = [1, 2, 3].map(n => {
       return (
-        <div key={i}>
-          <label htmlFor={question.id + '-answer' + i}>Answer {i + 1}</label>
+        <div key={n}>
+          <label htmlFor={'q-' + question.id + '-answerNumber' + n}>
+            Answer {n}
+          </label>
           <input
-            id={question.id + '-answer' + i}
+            id={'q-' + question.id + '-answerNumber' + n}
             type="text"
-            value={(question.answers && question.answers[i]) || ''}
+            value={(question.answers && question.answers[n - 1]) || ''}
             onChange={this.handleChange.bind(this)}
           />
         </div>
@@ -32,15 +40,24 @@ class QuestionForm extends React.Component {
     return (
       <div>
         <div>
-          <label htmlFor={question.id + '-question'}>Question</label>
+          <label htmlFor={'q-' + question.id + '-question'}>Question</label>
           <input
-            id={question.id + '-question'}
+            id={'q-' + question.id + '-question'}
             type="text"
             value={question.question}
             onChange={this.handleChange.bind(this)}
           />
         </div>
         {answerEls}
+        <div>
+          <label>Answer Number</label>
+          <input
+            id={'q-' + question.id + '-answerNumber'}
+            type="text"
+            value={question.answerNumber}
+            onChange={this.handleChange.bind(this)}
+          />
+        </div>
         <button
           onClick={e => {
             this.props.updateQuestion(this.props.question.id);
