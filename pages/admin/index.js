@@ -55,7 +55,10 @@ class Index extends React.Component {
   }
 
   async getGameIds() {
-    let gamesQuerySnapshot = await this.db.collection('games').get();
+    let gamesQuerySnapshot = await this.db
+      .collection('games')
+      .orderBy('created', 'desc')
+      .get();
 
     this.setState({
       gameIds: gamesQuerySnapshot.docs.map(gameDocSnap => {
@@ -169,6 +172,7 @@ class Index extends React.Component {
 
     this.setState({
       questions: questions,
+      questionsEdited: true,
     });
   }
 
@@ -297,9 +301,11 @@ class Index extends React.Component {
 
     const currentQuestion = currentGameData && currentGameData.currentQuestion;
     const currentAnswerNumber = currentQuestion && currentQuestion.answerNumber;
-    // const questionsLeft = questions.reduce(total, q => {
-    //   return total + (q.sent ? 0 : 1);
-    // });
+    const questionsLeft =
+      questions &&
+      questions.reduce((total, q) => {
+        return total + (q.sent ? 0 : 1);
+      }, 0);
 
     return (
       <div>
@@ -362,7 +368,7 @@ class Index extends React.Component {
 
             {currentGameData.state == 'started' && (
               <>
-                {!currentQuestion && (
+                {!currentQuestion && !!questionsLeft && (
                   <button onClick={this.sendNextQuestion.bind(this)}>
                     Send Next Question
                   </button>
