@@ -1,36 +1,30 @@
 class QuestionForm extends React.Component {
   handleChange() {
-    let question = this.props.question;
-    let details = question;
+    let questionData = Object.assign({}, this.props.question);
     let index = this.props.index;
 
-    console.log(question.id);
-    details.question = document.querySelector(
-      `#q-${question.id}-question`
-    ).value;
-    details.answerNumber = document.querySelector(
-      `#q-${question.id}-answerNumber`
-    ).value;
-    details.answers = [1, 2, 3].map(i => {
-      return document.querySelector(`#q-${question.id}-answerNumber${i}`).value;
+    questionData.question = document.querySelector(`#q${index}-question`).value;
+    questionData.answers = [1, 2, 3].map(n => {
+      return document.querySelector(`#q${index}-answerNumber${n}`).value;
     });
+    questionData.answerNumber = document.querySelector(
+      `#q${index}-answerNumber`
+    ).value;
 
-    this.props.handleQuestionChange(index, details);
+    this.props.onChange(index, questionData);
   }
 
   render() {
-    let { question, updateQuestion } = this.props;
+    let { questionData, index } = this.props;
 
     let answerEls = [1, 2, 3].map(n => {
       return (
         <div key={n}>
-          <label htmlFor={'q-' + question.id + '-answerNumber' + n}>
-            Answer {n}
-          </label>
+          <label htmlFor={'q' + index + '-answerNumber' + n}>Answer {n}</label>
           <input
-            id={'q-' + question.id + '-answerNumber' + n}
+            id={'q' + index + '-answerNumber' + n}
             type="text"
-            value={(question.answers && question.answers[n - 1]) || ''}
+            value={(questionData.answers && questionData.answers[n - 1]) || ''}
             onChange={this.handleChange.bind(this)}
           />
         </div>
@@ -40,11 +34,11 @@ class QuestionForm extends React.Component {
     return (
       <div>
         <div>
-          <label htmlFor={'q-' + question.id + '-question'}>Question</label>
+          <label htmlFor={'q' + index + '-question'}>Question</label>
           <input
-            id={'q-' + question.id + '-question'}
+            id={'q' + index + '-question'}
             type="text"
-            value={question.question}
+            value={questionData.question}
             onChange={this.handleChange.bind(this)}
           />
         </div>
@@ -52,22 +46,15 @@ class QuestionForm extends React.Component {
         <div>
           <label>Answer Number</label>
           <input
-            id={'q-' + question.id + '-answerNumber'}
+            id={'q' + index + '-answerNumber'}
             type="text"
-            value={question.answerNumber}
+            value={questionData.answerNumber}
             onChange={this.handleChange.bind(this)}
           />
         </div>
         <button
           onClick={e => {
-            this.props.updateQuestion(this.props.question.id);
-          }}
-        >
-          Save Question
-        </button>
-        <button
-          onClick={e => {
-            this.props.deleteQuestion(this.props.question.id);
+            this.props.deleteQuestion(index);
           }}
         >
           Delete Question

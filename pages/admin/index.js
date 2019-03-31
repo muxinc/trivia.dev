@@ -38,6 +38,11 @@ class Index extends React.Component {
   };
 
   async setUser(user) {
+    if (!user) {
+      this.setState({ currentUser: false });
+      return;
+    }
+
     this.setState({
       currentUser: {
         // username: session.additionalUserInfo.username,
@@ -95,9 +100,9 @@ class Index extends React.Component {
       .collection('private')
       .doc('questionsDoc')
       .onSnapshot(doc => {
-        console.log('doc', doc);
-        console.log('doc.data()', doc.data());
-        let data = doc.data();
+        console.log('questions snapshot');
+
+        let data = doc.data() || {};
         let questions = data.questions || [];
 
         this.setState({
@@ -167,11 +172,12 @@ class Index extends React.Component {
     });
   }
 
-  handleQuestionChange(i, details) {
+  handleQuestionChange(index, data) {
     let questions = this.state.questions;
-    questions[i] = details;
+    questions[index] = data;
     this.setState({
       questions: questions,
+      questionsEdited: true,
     });
   }
 
@@ -181,11 +187,14 @@ class Index extends React.Component {
       .doc(this.state.currentGameId)
       .collection('private')
       .doc('questionsDoc')
-      .update({
+      .set({
         questions: this.state.questions,
       })
       .then(docRef => {
-        console.log('question updated');
+        console.log('Questions Saved');
+        this.setState({
+          questionsEdited: false,
+        });
       })
       .catch(error => {
         alert('Error updating question');
@@ -195,18 +204,19 @@ class Index extends React.Component {
 
   deleteQuestion(index) {
     let questions = this.state.questions;
-
     questions.splice(index, 1);
-    this.saveQuestions();
+    this.setState({
+      questionsEdited: true,
+    });
   }
 
   sendNextQuestion() {
     const questions = this.state.questions;
-    let question;
+    let questionData;
 
     for (var i = 0; i < questions.length; i++) {
       if (!questions[i].sent) {
-        question = questions[i];
+        questionData = questions[i];
         break;
       }
     }
@@ -217,15 +227,15 @@ class Index extends React.Component {
       .update({
         currentQuestion: {
           index: i,
-          question: question.question,
-          answers: question.answers,
+          question: questionData.question,
+          answers: questionData.answers,
           expires: Date.now() + 10 * 1000,
         },
       })
       .then(docRef => {
         console.log('question sent');
-        question.sent = true;
-        this.updateQuestion(question.id);
+        questionData.sent = true;
+        this.saveQuestions();
       })
       .catch(error => {
         alert('Error adding question');
@@ -282,6 +292,7 @@ class Index extends React.Component {
       currentGameData,
       gameIds,
       questions,
+      questionsEdited,
     } = this.state;
 
     const currentQuestion = currentGameData && currentGameData.currentQuestion;
@@ -372,13 +383,12 @@ class Index extends React.Component {
             {currentGameData.state == 'closed' && <p>This game is closed.</p>}
 
             {questions &&
-              questions.map((question, i) => (
+              questions.map((questionData, i) => (
                 <QuestionForm
                   key={i}
                   index={i}
-                  question={question}
-                  handleQuestionChange={this.handleQuestionChange.bind(this)}
-                  updateQuestion={this.updateQuestion.bind(this)}
+                  questionData={questionData}
+                  onChange={this.handleQuestionChange.bind(this)}
                   deleteQuestion={this.deleteQuestion.bind(this)}
                 />
               ))}
@@ -386,6 +396,12 @@ class Index extends React.Component {
             <button onClick={this.createQuestion.bind(this)}>
               Add Question
             </button>
+
+            {questionsEdited && (
+              <button onClick={this.saveQuestions.bind(this)}>
+                Save Changes
+              </button>
+            )}
           </div>
         )}
       </div>
