@@ -33,32 +33,40 @@ class QuestionForm extends React.Component {
 
     return (
       <div>
-        <div>
-          <label htmlFor={'q' + index + '-question'}>Question</label>
-          <input
-            id={'q' + index + '-question'}
-            type="text"
-            value={questionData.question}
-            onChange={this.handleChange.bind(this)}
-          />
-        </div>
-        {answerEls}
-        <div>
-          <label>Answer Number</label>
-          <input
-            id={'q' + index + '-answerNumber'}
-            type="text"
-            value={questionData.answerNumber}
-            onChange={this.handleChange.bind(this)}
-          />
-        </div>
-        <button
-          onClick={e => {
-            this.props.deleteQuestion(index);
-          }}
-        >
-          Delete Question
-        </button>
+        <h3>Question #{index + 1}</h3>
+
+        {questionData.sent && <p>Sent</p>}
+
+        {!questionData.sent && (
+          <form>
+            <div>
+              <label htmlFor={'q' + index + '-question'}>Question</label>
+              <input
+                id={'q' + index + '-question'}
+                type="text"
+                value={questionData.question}
+                onChange={this.handleChange.bind(this)}
+              />
+            </div>
+            {answerEls}
+            <div>
+              <label>Answer Number</label>
+              <input
+                id={'q' + index + '-answerNumber'}
+                type="text"
+                value={questionData.answerNumber}
+                onChange={this.handleChange.bind(this)}
+              />
+            </div>
+            <button
+              onClick={e => {
+                this.props.deleteQuestion(index);
+              }}
+            >
+              Delete Question
+            </button>
+          </form>
+        )}
       </div>
     );
   }

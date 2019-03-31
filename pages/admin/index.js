@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import initialize from '../../lib/firebase';
 import Head from 'next/head';
-import QuestionForm from '../../components/QuestionForm';
+import QuestionForm from '../../components/admin/QuestionForm';
 
 class Index extends React.Component {
   constructor(props) {
@@ -297,6 +297,9 @@ class Index extends React.Component {
 
     const currentQuestion = currentGameData && currentGameData.currentQuestion;
     const currentAnswerNumber = currentQuestion && currentQuestion.answerNumber;
+    // const questionsLeft = questions.reduce(total, q => {
+    //   return total + (q.sent ? 0 : 1);
+    // });
 
     return (
       <div>
@@ -372,7 +375,7 @@ class Index extends React.Component {
                   )}
                 {currentAnswerNumber > 0 && (
                   <button onClick={this.finishQuestion.bind(this)}>
-                    Finish Question
+                    Clear Results
                   </button>
                 )}
 
