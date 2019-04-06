@@ -78,23 +78,32 @@ class Index extends React.Component {
       .where('state', '==', 'open')
       .limit(1)
       .onSnapshot(querySnapshot => {
-        console.log('Game Listener');
+        let gameDoc;
 
         // Use the latest open game ID
-        let gameId;
         querySnapshot.forEach(function(doc) {
-          gameId = doc.id;
+          gameDoc = doc;
         });
 
-        if (gameId) {
+        if (gameDoc) {
           stopListeningForAGame();
           // Subscribe to game updates
-          this.subscribeToGame(gameId);
+          this.joinGame(gameDoc.id);
+
+          // Add player to the game
+          gameDoc.ref
+            .collection('players')
+            .doc(this.state.currentUser.id)
+            .set({})
+            .then(docRef => {})
+            .catch(error => {
+              console.error('Error adding player: ', error);
+            });
         }
       });
   }
 
-  subscribeToGame(gameId) {
+  joinGame(gameId) {
     let gameRef = this.db.collection('games').doc(gameId);
 
     this.unsubscribeFromGame = gameRef.onSnapshot(
@@ -107,22 +116,17 @@ class Index extends React.Component {
 
         this.setState({
           currentGameId: gameId,
-          gameRef: gameRef,
           playerAnswersRef: gameRef.collection('playerAnswers'),
           currentGameData: doc.data(),
-          // // Fake Game
-          // currentGameData: {
-          //   created: 'now',
-          //   state: 'open',
-          //   currentQuestion: {
-          //     index: 0,
-          //     question: 'What is my favorite color?',
-          //     answers: ['blue', 'green', 'clear'],
-          //   },
-          // },
         });
       }
     );
+  }
+
+  subscribeToGamePlayer() {}
+
+  leaveGame() {
+    this.unsubscribeFromGame && this.unsubscribeFromGame();
   }
 
   // Submit an answer for the user.
