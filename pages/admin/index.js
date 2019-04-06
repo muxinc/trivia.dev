@@ -167,7 +167,7 @@ class Index extends React.Component {
 
     questions.push({
       question: '',
-      answers: [],
+      answers: new Array(3).fill(''),
     });
 
     this.setState({
@@ -396,7 +396,10 @@ class Index extends React.Component {
                 <QuestionForm
                   key={i}
                   index={i}
-                  questionData={questionData}
+                  question={questionData.question}
+                  answers={questionData.answers}
+                  answerNumber={questionData.answerNumber}
+                  sent={questionData.sent}
                   onChange={this.handleQuestionChange.bind(this)}
                   deleteQuestion={this.deleteQuestion.bind(this)}
                 />

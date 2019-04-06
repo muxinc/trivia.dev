@@ -1,31 +1,35 @@
 class QuestionForm extends React.Component {
-  handleChange() {
-    let questionData = Object.assign({}, this.props.question);
-    let index = this.props.index;
+  static defaultProps = {
+    question: '',
+    answers: [],
+    answerNumber: '',
+    sent: false,
+  };
 
-    questionData.question = document.querySelector(`#q${index}-question`).value;
-    questionData.answers = [1, 2, 3].map(n => {
-      return document.querySelector(`#q${index}-answerNumber${n}`).value;
-    });
-    questionData.answerNumber = document.querySelector(
-      `#q${index}-answerNumber`
-    ).value;
+  handleChange(field, answerIndex, event) {
+    const { question, answers, answerNumber, sent, index } = this.props;
+    const questionData = { question, answers, answerNumber, sent };
+
+    if (answerIndex === undefined) {
+      questionData[field] = event.target.value;
+    } else {
+      questionData[field][answerIndex] = event.target.value;
+    }
 
     this.props.onChange(index, questionData);
   }
 
   render() {
-    let { questionData, index } = this.props;
+    const { question, answers, answerNumber, sent, index } = this.props;
 
-    let answerEls = [1, 2, 3].map(n => {
+    let answerEls = answers.map((value, answerIndex) => {
       return (
-        <div key={n}>
-          <label htmlFor={'q' + index + '-answerNumber' + n}>Answer {n}</label>
+        <div key={answerIndex}>
+          <label>Answer {answerIndex + 1}</label>
           <input
-            id={'q' + index + '-answerNumber' + n}
             type="text"
-            value={(questionData.answers && questionData.answers[n - 1]) || ''}
-            onChange={this.handleChange.bind(this)}
+            value={value}
+            onChange={this.handleChange.bind(this, 'answers', answerIndex)}
           />
         </div>
       );
@@ -35,27 +39,29 @@ class QuestionForm extends React.Component {
       <div>
         <h3>Question #{index + 1}</h3>
 
-        {questionData.sent && <p>Sent</p>}
+        {sent && <p>Sent</p>}
 
-        {!questionData.sent && (
+        {!sent && (
           <form>
             <div>
-              <label htmlFor={'q' + index + '-question'}>Question</label>
+              <label>Question</label>
               <input
-                id={'q' + index + '-question'}
                 type="text"
-                value={questionData.question}
-                onChange={this.handleChange.bind(this)}
+                value={question}
+                onChange={this.handleChange.bind(this, 'question', undefined)}
               />
             </div>
             {answerEls}
             <div>
               <label>Answer Number</label>
               <input
-                id={'q' + index + '-answerNumber'}
                 type="text"
-                value={questionData.answerNumber}
-                onChange={this.handleChange.bind(this)}
+                value={answerNumber}
+                onChange={this.handleChange.bind(
+                  this,
+                  'answerNumber',
+                  undefined
+                )}
               />
             </div>
             <button
