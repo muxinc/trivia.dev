@@ -25,9 +25,7 @@ class QuestionForm extends React.Component {
     let answerEls = answers.map((value, answerIndex) => {
       return (
         <div key={answerIndex}>
-          <label htmlFor={'q' + index + '-answerNumber' + answerIndex}>
-            Answer {answerIndex + 1}
-          </label>
+          <label>Answer {answerIndex + 1}</label>
           <input
             type="text"
             value={value}
@@ -46,7 +44,7 @@ class QuestionForm extends React.Component {
         {!sent && (
           <form>
             <div>
-              <label htmlFor={'q' + index + '-question'}>Question</label>
+              <label>Question</label>
               <input
                 type="text"
                 value={question}
