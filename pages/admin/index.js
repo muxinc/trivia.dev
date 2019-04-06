@@ -167,7 +167,7 @@ class Index extends React.Component {
 
     questions.push({
       question: '',
-      answers: new Array(3).fill(),
+      answers: new Array(3).fill(''),
     });
 
     this.setState({

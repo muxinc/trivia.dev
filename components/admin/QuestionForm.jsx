@@ -6,18 +6,18 @@ class QuestionForm extends React.Component {
     sent: false,
   };
 
-  handleChange = (field, answerIndex) => e => {
+  handleChange(field, answerIndex, event) {
     const { question, answers, answerNumber, sent, index } = this.props;
     const questionData = { question, answers, answerNumber, sent };
 
     if (answerIndex === undefined) {
-      questionData[field] = e.target.value;
+      questionData[field] = event.target.value;
     } else {
-      questionData[field][answerIndex] = e.target.value;
+      questionData[field][answerIndex] = event.target.value;
     }
 
     this.props.onChange(index, questionData);
-  };
+  }
 
   render() {
     const { question, answers, answerNumber, sent, index } = this.props;
@@ -29,7 +29,7 @@ class QuestionForm extends React.Component {
           <input
             type="text"
             value={value}
-            onChange={this.handleChange('answers', answerIndex)}
+            onChange={this.handleChange.bind(this, 'answers', answerIndex)}
           />
         </div>
       );
@@ -48,7 +48,7 @@ class QuestionForm extends React.Component {
               <input
                 type="text"
                 value={question}
-                onChange={this.handleChange('question')}
+                onChange={this.handleChange.bind(this, 'question', undefined)}
               />
             </div>
             {answerEls}
@@ -57,7 +57,11 @@ class QuestionForm extends React.Component {
               <input
                 type="text"
                 value={answerNumber}
-                onChange={this.handleChange('answerNumber')}
+                onChange={this.handleChange.bind(
+                  this,
+                  'answerNumber',
+                  undefined
+                )}
               />
             </div>
             <button
