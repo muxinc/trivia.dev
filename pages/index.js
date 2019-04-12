@@ -28,13 +28,25 @@ class Index extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      currentUser: undefined,
-      currentGameId: undefined,
+      user: undefined,
+      gameId: undefined,
     };
   }
 
   componentDidMount() {
-    this.gameFinder();
+    initialize().then(({ firebase, db }) => {
+      this.firebase = firebase;
+      this.db = db;
+
+      // If they're already logged in...
+      firebase.auth().onAuthStateChanged(user => {
+        this.setUser(user);
+
+        if (user) {
+          this.findGame();
+        }
+      });
+    });
   }
 
   login = async () => {
@@ -46,12 +58,12 @@ class Index extends React.Component {
 
     const session = await this.firebase.auth().signInWithPopup(authProvider);
 
-    this.setUser(session.user);
+    // this.setUser(session.user);
   };
 
   setUser(user) {
     this.setState({
-      currentUser: {
+      user: {
         // username: session.additionalUserInfo.username,
         email: user.email,
         name: user.displayName,
@@ -60,88 +72,99 @@ class Index extends React.Component {
     });
   }
 
-  async gameFinder() {
-    const { firebase, db } = await initialize();
-    this.firebase = firebase;
-    this.db = db;
-
-    // If they're already logged in...
-    firebase.auth().onAuthStateChanged(user => {
-      if (user) {
-        this.setUser(user);
-      }
-    });
-
-    // Listen for an open game
+  // Listen for an open game
+  async findGame() {
     let stopListeningForAGame = this.db
       .collection('games')
       .where('state', '==', 'open')
       .limit(1)
       .onSnapshot(querySnapshot => {
-        console.log('Game Listener');
+        let gameDoc;
 
         // Use the latest open game ID
-        let gameId;
         querySnapshot.forEach(function(doc) {
-          gameId = doc.id;
+          gameDoc = doc;
         });
 
-        if (gameId) {
+        if (gameDoc) {
           stopListeningForAGame();
+
           // Subscribe to game updates
-          this.subscribeToGame(gameId);
+          this.joinGame(gameDoc.id);
         }
       });
   }
 
-  subscribeToGame(gameId) {
-    let gameRef = this.db.collection('games').doc(gameId);
+  joinGame(gameId) {
+    this.unsubscribeFromGame = this.db
+      .collection('games')
+      .doc(gameId)
+      .onSnapshot(
+        {
+          // Listen for document metadata changes
+          // includeMetadataChanges: true,
+        },
+        doc => {
+          this.setState({
+            gameId: gameId,
+            gameData: doc.data(),
+          });
 
-    this.unsubscribeFromGame = gameRef.onSnapshot(
-      {
-        // Listen for document metadata changes
-        includeMetadataChanges: true,
-      },
-      doc => {
-        console.log('Game Update');
+          // Add player to the game
+          doc.ref
+            .collection('players')
+            .doc(this.state.user.id)
+            .set({})
+            .then(docRef => {
+              this.subscribeToGamePlayer(gameId, this.state.user.id);
+            })
+            .catch(error => {
+              console.error('Error adding player: ', error);
+            });
+        }
+      );
+  }
 
+  subscribeToGamePlayer(gameId, playerId) {
+    if (!gameId || !playerId) return;
+
+    this.unsubscribeFromGamePlayer = this.db
+      .collection('games')
+      .doc(gameId)
+      .collection('players')
+      .doc(playerId)
+      .onSnapshot(doc => {
         this.setState({
-          currentGameId: gameId,
-          gameRef: gameRef,
-          playerAnswersRef: gameRef.collection('playerAnswers'),
-          currentGameData: doc.data(),
-          // // Fake Game
-          // currentGameData: {
-          //   created: 'now',
-          //   state: 'open',
-          //   currentQuestion: {
-          //     index: 0,
-          //     question: 'What is my favorite color?',
-          //     answers: ['blue', 'green', 'clear'],
-          //   },
-          // },
+          playerData: doc.data(),
         });
-      }
-    );
+      });
+  }
+
+  leaveGame() {
+    this.unsubscribeFromGame && this.unsubscribeFromGame();
+    this.unsubscribeFromGamePlayer && this.unsubscribeFromGamePlayer();
   }
 
   // Submit an answer for the user.
   // Record can include the GameID, UserID, and answer index.
   // Only the first submitted answer will be used.
   // The UI should not allow changes, and should reflect the first answer.
-  submitAnswer(answerIndex) {
-    this.state.playerAnswersRef
+  submitAnswer(answerNumber) {
+    this.db
+      .collection('games')
+      .doc(this.state.gameId)
+      .collection('playerAnswers')
       .add({
         created: this.firebase.firestore.FieldValue.serverTimestamp(),
-        userId: this.state.currentUser.id,
-        question: this.state.currentGameData.currentQuestion.index,
-        answer: answerIndex,
+        userId: this.state.user.id,
+        questionNumber: this.state.gameData.currentQuestion.number,
+        answerNumber: answerNumber,
       })
       .then(docRef => {
         this.setState({
-          currentAnswer: answerIndex,
+          playerAnswer: answerNumber,
         });
-        console.log('answer', answerIndex);
+        console.log('answer', answerNumber);
         console.log('Submitted Answer. Document written with ID: ', docRef.id);
       })
       .catch(error => {
@@ -151,15 +174,9 @@ class Index extends React.Component {
   }
 
   render() {
-    const {
-      currentUser,
-      currentGameId,
-      currentGameData,
-      userAnswers,
-      currentAnswer,
-    } = this.state;
-    const currentQuestion = currentGameData && currentGameData.currentQuestion;
-    const answered = currentAnswer >= 0;
+    const { user, gameId, gameData, playerAnswer } = this.state;
+    const currentQuestion = gameData && gameData.currentQuestion;
+    const winners = gameData && gameData.winners;
 
     return (
       <GameFrame>
@@ -186,30 +203,32 @@ class Index extends React.Component {
 
         <TitleBar>trivia.dev</TitleBar>
 
-        {!currentUser && (
+        {!user && (
           <LoginModal>
             <p>Log in to play.</p>
             <button onClick={this.login}>Log in with Github</button>
           </LoginModal>
         )}
 
-        {currentUser && <p>Oh hai, {currentUser.name}</p>}
+        {user && <p>Oh hai, {user.name}</p>}
 
-        {currentUser && !currentGameId && (
+        {user && !gameId && (
           <p>
             There's no game starting right now. Try back when a show is
             scheduled.
           </p>
         )}
 
-        {currentUser && currentGameId && currentGameData.state == 'open' && (
-          <p>You're in the game! ({currentGameId}) The game will start soon!</p>
+        {user && gameId && gameData.state == 'open' && (
+          <p>You're in the game! ({gameId}) The game will start soon!</p>
         )}
 
         {currentQuestion && currentQuestion.expires >= Date.now() && (
           <QuestionModal
-            currentQuestion={currentQuestion}
-            currentAnswer={currentAnswer}
+            question={currentQuestion.question}
+            expires={currentQuestion.expires}
+            answers={currentQuestion.answers}
+            playerAnswer={playerAnswer}
             submitAnswer={this.submitAnswer.bind(this)}
           />
         )}
@@ -222,6 +241,15 @@ class Index extends React.Component {
               <div key={i}>
                 {currentQuestion.answers[i]} | {result}
               </div>
+            ))}
+          </div>
+        )}
+
+        {winners && (
+          <div>
+            <h3>Here are the winners!</h3>
+            {winners.map((userId, i) => (
+              <div key={i}>{userId}</div>
             ))}
           </div>
         )}
