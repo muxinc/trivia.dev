@@ -10,13 +10,13 @@ class Index extends React.Component {
     this.question = props.question;
     this.answers = props.answers;
 
-    this.submitAnswer = i => {
-      if (this.state.playerAnswer >= 0) return;
+    this.submitAnswer = number => {
+      if (this.state.playerAnswer > 0) return;
 
       this.setState({
-        playerAnswer: i,
+        playerAnswer: number,
       });
-      props.submitAnswer(i);
+      props.submitAnswer(number);
     };
 
     this.state = {
@@ -87,9 +87,9 @@ class Index extends React.Component {
         </p>
         {this.answers.map((answer, i) => (
           <AnswerButton
-            selected={this.state.playerAnswer === i}
+            selected={this.state.playerAnswer === i + 1}
             onClick={() => {
-              this.submitAnswer(i);
+              this.submitAnswer(i + 1);
             }}
             key={i}
           >

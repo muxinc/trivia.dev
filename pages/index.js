@@ -96,32 +96,33 @@ class Index extends React.Component {
   }
 
   joinGame(gameId) {
-    let gameRef = this.db.collection('games').doc(gameId);
-
-    this.unsubscribeFromGame = gameRef.onSnapshot(
-      {
-        // Listen for document metadata changes
-        // includeMetadataChanges: true,
-      },
-      doc => {
-        this.setState({
-          gameId: gameId,
-          gameData: doc.data(),
-        });
-
-        // Add player to the game
-        doc.ref
-          .collection('players')
-          .doc(this.state.user.id)
-          .set({})
-          .then(docRef => {
-            this.subscribeToGamePlayer(gameId, this.state.user.id);
-          })
-          .catch(error => {
-            console.error('Error adding player: ', error);
+    this.unsubscribeFromGame = this.db
+      .collection('games')
+      .doc(gameId)
+      .onSnapshot(
+        {
+          // Listen for document metadata changes
+          // includeMetadataChanges: true,
+        },
+        doc => {
+          this.setState({
+            gameId: gameId,
+            gameData: doc.data(),
           });
-      }
-    );
+
+          // Add player to the game
+          doc.ref
+            .collection('players')
+            .doc(this.state.user.id)
+            .set({})
+            .then(docRef => {
+              this.subscribeToGamePlayer(gameId, this.state.user.id);
+            })
+            .catch(error => {
+              console.error('Error adding player: ', error);
+            });
+        }
+      );
   }
 
   subscribeToGamePlayer(gameId, playerId) {
@@ -148,7 +149,7 @@ class Index extends React.Component {
   // Record can include the GameID, UserID, and answer index.
   // Only the first submitted answer will be used.
   // The UI should not allow changes, and should reflect the first answer.
-  submitAnswer(answerIndex) {
+  submitAnswer(answerNumber) {
     this.db
       .collection('games')
       .doc(this.state.gameId)
@@ -156,14 +157,14 @@ class Index extends React.Component {
       .add({
         created: this.firebase.firestore.FieldValue.serverTimestamp(),
         userId: this.state.user.id,
-        question: this.state.gameData.currentQuestion.index,
-        answer: answerIndex,
+        questionNumber: this.state.gameData.currentQuestion.number,
+        answerNumber: answerNumber,
       })
       .then(docRef => {
         this.setState({
-          playerAnswer: answerIndex,
+          playerAnswer: answerNumber,
         });
-        console.log('answer', answerIndex);
+        console.log('answer', answerNumber);
         console.log('Submitted Answer. Document written with ID: ', docRef.id);
       })
       .catch(error => {
@@ -173,9 +174,9 @@ class Index extends React.Component {
   }
 
   render() {
-    const { user, gameId, gameData, userAnswers, playerAnswer } = this.state;
+    const { user, gameId, gameData, playerAnswer } = this.state;
     const currentQuestion = gameData && gameData.currentQuestion;
-    const answered = playerAnswer >= 0;
+    const winners = gameData && gameData.winners;
 
     return (
       <GameFrame>
@@ -240,6 +241,15 @@ class Index extends React.Component {
               <div key={i}>
                 {currentQuestion.answers[i]} | {result}
               </div>
+            ))}
+          </div>
+        )}
+
+        {winners && (
+          <div>
+            <h3>Here are the winners!</h3>
+            {winners.map((userId, i) => (
+              <div key={i}>{userId}</div>
             ))}
           </div>
         )}

@@ -214,7 +214,7 @@ class Index extends React.Component {
     });
   }
 
-  sendNextQuestion() {
+  showNextQuestion() {
     const questions = this.state.questions;
     let questionData;
 
@@ -231,6 +231,7 @@ class Index extends React.Component {
       .update({
         currentQuestion: {
           index: i,
+          number: i + 1,
           question: questionData.question,
           answers: questionData.answers,
           expires: Date.now() + 10 * 1000,
@@ -286,6 +287,56 @@ class Index extends React.Component {
       .catch(error => {
         alert('Error adding results');
         console.error('Error adding results: ', error);
+      });
+  }
+
+  async showWinners() {
+    let playerAnswersQuerySnapshot = await this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
+      .collection('playerAnswers')
+      .orderBy('created', 'asc')
+      .get();
+
+    let playerLost = {};
+
+    playerAnswersQuerySnapshot.forEach(docSnap => {
+      const { userId, questionNumber, answerNumber } = docSnap.data();
+
+      // Make sure the player exists in the list
+      if (playerLost[userId] !== true) playerLost[userId] = false;
+
+      console.log(
+        answerNumber,
+        this.state.questions[questionNumber - 1].answerNumber
+      );
+
+      if (
+        answerNumber != this.state.questions[questionNumber - 1].answerNumber
+      ) {
+        playerLost[userId] = true;
+      }
+    });
+
+    console.log('playerLost', playerLost);
+
+    let winners = [];
+    Object.keys(playerLost).forEach(userId => {
+      if (!playerLost[userId]) {
+        winners.push(userId);
+      }
+    });
+
+    console.log('winners', winners);
+
+    this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
+      .update({
+        winners: winners,
+      })
+      .then(docRef => {
+        console.log('Showing Winners');
       });
   }
 
@@ -369,8 +420,8 @@ class Index extends React.Component {
             {currentGameData.state == 'started' && (
               <>
                 {!currentQuestion && !!questionsLeft && (
-                  <button onClick={this.sendNextQuestion.bind(this)}>
-                    Send Next Question
+                  <button onClick={this.showNextQuestion.bind(this)}>
+                    Show Next Question
                   </button>
                 )}
                 {currentQuestion &&
@@ -382,6 +433,11 @@ class Index extends React.Component {
                 {currentAnswerNumber > 0 && (
                   <button onClick={this.finishQuestion.bind(this)}>
                     Clear Results
+                  </button>
+                )}
+                {questionsLeft === 0 && (
+                  <button onClick={this.showWinners.bind(this)}>
+                    Show Game Results
                   </button>
                 )}
 
