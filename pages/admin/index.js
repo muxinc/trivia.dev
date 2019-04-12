@@ -248,16 +248,31 @@ class Index extends React.Component {
       });
   }
 
-  sendResults() {
-    const questionIndex = this.state.currentGameData.currentQuestion.index;
-    const currentQuestion = this.state.questions[questionIndex];
+  async showQuestionResults() {
+    const questionNumber = this.state.currentGameData.currentQuestion.number;
+    const currentQuestion = this.state.questions[questionNumber - 1];
+    const answerNumber = currentQuestion.answerNumber;
+    let results = [0, 0, 0];
+
+    let playerAnswersSnapshot = await this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
+      .collection('playerAnswers')
+      .where('questionNumber', '==', questionNumber)
+      .orderBy('created', 'asc')
+      .get();
+
+    playerAnswersSnapshot.forEach(docSnap => {
+      const playerAnswerNumber = docSnap.data().answerNumber;
+      results[playerAnswerNumber - 1]++;
+    });
 
     this.db
       .collection('games')
       .doc(this.state.currentGameId)
       .update({
         'currentQuestion.answerNumber': currentQuestion.answerNumber,
-        'currentQuestion.results': [100, 2, 50],
+        'currentQuestion.results': results,
       })
       .then(docRef => {
         console.log('Added results');
@@ -268,7 +283,7 @@ class Index extends React.Component {
       });
   }
 
-  finishQuestion() {
+  clearQuestionResults() {
     const questionIndex = this.state.currentGameData.currentQuestion.index;
     const currentQuestion = this.state.questions[questionIndex];
 
@@ -298,31 +313,25 @@ class Index extends React.Component {
       .orderBy('created', 'asc')
       .get();
 
-    let playerLost = {};
+    let playerAnswers = {};
 
     playerAnswersQuerySnapshot.forEach(docSnap => {
       const { userId, questionNumber, answerNumber } = docSnap.data();
+      const questionIndex = questionNumber - 1;
+      const rightAnswer = this.state.questions[questionIndex].answerNumber;
 
       // Make sure the player exists in the list
-      if (playerLost[userId] !== true) playerLost[userId] = false;
+      if (!playerAnswers[userId]) playerAnswers[userId] = [];
 
-      console.log(
-        answerNumber,
-        this.state.questions[questionNumber - 1].answerNumber
-      );
-
-      if (
-        answerNumber != this.state.questions[questionNumber - 1].answerNumber
-      ) {
-        playerLost[userId] = true;
-      }
+      playerAnswers[userId][questionIndex] = !!(answerNumber == rightAnswer);
     });
 
-    console.log('playerLost', playerLost);
-
     let winners = [];
-    Object.keys(playerLost).forEach(userId => {
-      if (!playerLost[userId]) {
+    Object.keys(playerAnswers).forEach(userId => {
+      const answers = playerAnswers[userId];
+      const correct = answers.reduce((a, b) => a + b);
+
+      if (correct == this.state.questions.length) {
         winners.push(userId);
       }
     });
@@ -426,12 +435,12 @@ class Index extends React.Component {
                 )}
                 {currentQuestion &&
                   typeof currentAnswerNumber == 'undefined' && (
-                    <button onClick={this.sendResults.bind(this)}>
+                    <button onClick={this.showQuestionResults.bind(this)}>
                       Send Results
                     </button>
                   )}
                 {currentAnswerNumber > 0 && (
-                  <button onClick={this.finishQuestion.bind(this)}>
+                  <button onClick={this.clearQuestionResults.bind(this)}>
                     Clear Results
                   </button>
                 )}

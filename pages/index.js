@@ -96,6 +96,20 @@ class Index extends React.Component {
   }
 
   joinGame(gameId) {
+    // Add player to the game
+    this.db
+      .collection('games')
+      .doc(gameId)
+      .collection('players')
+      .doc(this.state.user.id)
+      .set({})
+      .then(docRef => {
+        this.subscribeToGamePlayer(gameId, this.state.user.id);
+      })
+      .catch(error => {
+        console.error('Error adding player: ', error);
+      });
+
     this.unsubscribeFromGame = this.db
       .collection('games')
       .doc(gameId)
@@ -109,18 +123,6 @@ class Index extends React.Component {
             gameId: gameId,
             gameData: doc.data(),
           });
-
-          // Add player to the game
-          doc.ref
-            .collection('players')
-            .doc(this.state.user.id)
-            .set({})
-            .then(docRef => {
-              this.subscribeToGamePlayer(gameId, this.state.user.id);
-            })
-            .catch(error => {
-              console.error('Error adding player: ', error);
-            });
         }
       );
   }
@@ -134,6 +136,8 @@ class Index extends React.Component {
       .collection('players')
       .doc(playerId)
       .onSnapshot(doc => {
+        console.log('subscribeToGamePlayer', doc.data());
+
         this.setState({
           playerData: doc.data(),
         });
@@ -150,6 +154,36 @@ class Index extends React.Component {
   // Only the first submitted answer will be used.
   // The UI should not allow changes, and should reflect the first answer.
   submitAnswer(answerNumber) {
+    console.log('submitAnswer', this.state.playerData);
+
+    const playerData = this.state.playerData || {};
+
+    console.log(playerData);
+
+    const questionIndex = this.state.gameData.currentQuestion.number - 1;
+
+    playerData.answers = playerData.answers || [];
+    playerData.answers[questionIndex] = answerNumber;
+
+    this.setState({
+      playerData: playerData,
+    });
+
+    console.log('playerData', playerData);
+
+    this.db
+      .collection('games')
+      .doc(this.state.gameId)
+      .collection('players')
+      .doc(this.state.user.id)
+      .set(playerData)
+      .then(docRef => {
+        console.log('Submitted Answer. Document written with');
+      })
+      .catch(error => {
+        console.error('Error adding document: ', error);
+      });
+
     this.db
       .collection('games')
       .doc(this.state.gameId)
@@ -161,9 +195,6 @@ class Index extends React.Component {
         answerNumber: answerNumber,
       })
       .then(docRef => {
-        this.setState({
-          playerAnswer: answerNumber,
-        });
         console.log('answer', answerNumber);
         console.log('Submitted Answer. Document written with ID: ', docRef.id);
       })
@@ -174,8 +205,12 @@ class Index extends React.Component {
   }
 
   render() {
-    const { user, gameId, gameData, playerAnswer } = this.state;
+    const { user, gameId, gameData, playerData } = this.state;
     const currentQuestion = gameData && gameData.currentQuestion;
+    const playerAnswer =
+      currentQuestion &&
+      playerData.answers &&
+      playerData.answers[currentQuestion.number - 1];
     const winners = gameData && gameData.winners;
 
     return (
