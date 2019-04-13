@@ -15,6 +15,7 @@
   "scripts": {
     "dev": "next",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "now-build": "npm run build && next export -o dist"
   }
 }
