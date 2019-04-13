@@ -102,7 +102,9 @@ class Index extends React.Component {
       .doc(gameId)
       .collection('players')
       .doc(this.state.user.id)
-      .set({})
+      .set({
+        name: this.state.user.name,
+      })
       .then(docRef => {
         this.subscribeToGamePlayer(gameId, this.state.user.id);
       })
