@@ -102,7 +102,9 @@ class Index extends React.Component {
       .doc(gameId)
       .collection('players')
       .doc(this.state.user.id)
-      .set({})
+      .set({
+        name: this.state.user.name,
+      })
       .then(docRef => {
         this.subscribeToGamePlayer(gameId, this.state.user.id);
       })
@@ -283,8 +285,8 @@ class Index extends React.Component {
         {winners && (
           <div>
             <h3>Here are the winners!</h3>
-            {winners.map((userId, i) => (
-              <div key={i}>{userId}</div>
+            {winners.map((winner, i) => (
+              <div key={i}>{winner.name}</div>
             ))}
           </div>
         )}
