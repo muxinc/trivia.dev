@@ -326,19 +326,31 @@ class Index extends React.Component {
       playerAnswers[userId][questionIndex] = !!(answerNumber == rightAnswer);
     });
 
-    let winnerRefs = [];
+    let winnerIds = [];
     Object.keys(playerAnswers).forEach(userId => {
       const answers = playerAnswers[userId];
       const correct = answers.reduce((a, b) => a + b);
 
       if (correct == this.state.questions.length) {
-        winners.push(
-          this.db.doc(`games/${this.state.currentGameId}/players/${userId}`)
-        );
+        winnerIds.push(userId);
       }
     });
 
-    let winners = await this.db.getAll(...winnerRefs);
+    let playersSnapshot = await this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
+      .collection('players')
+      .get();
+
+    let winners = [];
+    playersSnapshot.forEach(docSnap => {
+      if (winnerIds.includes(docSnap.id)) {
+        let { name } = docSnap.data();
+        winners.push({
+          name: name,
+        });
+      }
+    });
 
     console.log('winners', winners);
 

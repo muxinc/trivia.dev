@@ -285,8 +285,8 @@ class Index extends React.Component {
         {winners && (
           <div>
             <h3>Here are the winners!</h3>
-            {winners.map((userId, i) => (
-              <div key={i}>{userId}</div>
+            {winners.map((winner, i) => (
+              <div key={i}>{winner.name}</div>
             ))}
           </div>
         )}
