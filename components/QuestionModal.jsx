@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import AnswerButton from './AnswerButton';
 
-class Index extends React.Component {
+class QuestionModal extends React.Component {
   constructor(props) {
     super(props);
 
@@ -101,4 +101,4 @@ class Index extends React.Component {
   }
 }
 
-export default Index;
+export default QuestionModal;

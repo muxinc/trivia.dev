@@ -8,6 +8,7 @@ import VideoPlane from '../components/VideoPlane';
 import TitleBar from '../components/TitleBar';
 import AnswerButton from '../components/AnswerButton';
 import QuestionModal from '../components/QuestionModal';
+import QuestionResultsModal from '../components/QuestionResultsModal';
 
 const LoginModal = styled('div')`
   position: relative;
@@ -41,10 +42,6 @@ class Index extends React.Component {
       // If they're already logged in...
       firebase.auth().onAuthStateChanged(user => {
         this.setUser(user);
-
-        if (user) {
-          this.findGame();
-        }
       });
     });
   }
@@ -61,7 +58,26 @@ class Index extends React.Component {
     // this.setUser(session.user);
   };
 
+  loginWithName(e) {
+    let name = document.querySelector('#loginName').value;
+
+    if (!name) name = 'guest' + Math.floor(Math.random() * 1000);
+
+    this.setUser({
+      displayName: name,
+      uid: name + '-' + Math.floor(Math.random() * 1000000),
+      email: '...',
+    });
+  }
+
   setUser(user) {
+    if (!user) {
+      this.setState({
+        user: null,
+      });
+      return;
+    }
+
     this.setState({
       user: {
         // username: session.additionalUserInfo.username,
@@ -70,6 +86,8 @@ class Index extends React.Component {
         id: user.uid,
       },
     });
+
+    this.findGame();
   }
 
   // Listen for an open game
@@ -156,12 +174,7 @@ class Index extends React.Component {
   // Only the first submitted answer will be used.
   // The UI should not allow changes, and should reflect the first answer.
   submitAnswer(answerNumber) {
-    console.log('submitAnswer', this.state.playerData);
-
     const playerData = this.state.playerData || {};
-
-    console.log(playerData);
-
     const questionIndex = this.state.gameData.currentQuestion.number - 1;
 
     playerData.answers = playerData.answers || [];
@@ -170,8 +183,6 @@ class Index extends React.Component {
     this.setState({
       playerData: playerData,
     });
-
-    console.log('playerData', playerData);
 
     this.db
       .collection('games')
@@ -244,6 +255,12 @@ class Index extends React.Component {
           <LoginModal>
             <p>Log in to play.</p>
             <button onClick={this.login}>Log in with Github</button>
+            <p>Or just enter your name.</p>
+            <input id="loginName" type="text" />
+            <br />
+            <button onClick={this.loginWithName.bind(this)}>
+              Log in with Name
+            </button>
           </LoginModal>
         )}
 
@@ -270,16 +287,14 @@ class Index extends React.Component {
           />
         )}
 
-        {currentQuestion && typeof currentQuestion.answerNumber != 'undefined' && (
-          <div>
-            <p>Q: {currentQuestion.question}</p>
-            <p>Here are the results!</p>
-            {currentQuestion.results.map((result, i) => (
-              <div key={i}>
-                {currentQuestion.answers[i]} | {result}
-              </div>
-            ))}
-          </div>
+        {currentQuestion && currentQuestion.answerNumber && (
+          <QuestionResultsModal
+            question={currentQuestion.question}
+            answers={currentQuestion.answers}
+            answerNumber={currentQuestion.answerNumber}
+            results={currentQuestion.results}
+            playerAnswer={playerAnswer}
+          />
         )}
 
         {winners && (

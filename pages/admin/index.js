@@ -112,6 +112,21 @@ class Index extends React.Component {
           questions: questions,
         });
       });
+
+    this.unsubscribeFromPlayers = gameRef
+      .collection('players')
+      .onSnapshot(querySnap => {
+        let players = [];
+        querySnap.forEach(doc => {
+          let player = doc.data();
+          player.id = doc.id;
+          players.push(player);
+        });
+
+        this.setState({
+          players: players,
+        });
+      });
   }
 
   openGame() {
@@ -373,6 +388,7 @@ class Index extends React.Component {
       gameIds,
       questions,
       questionsEdited,
+      players,
     } = this.state;
 
     const currentQuestion = currentGameData && currentGameData.currentQuestion;
@@ -432,7 +448,7 @@ class Index extends React.Component {
         {currentUser && currentGameId && (
           <div>
             <p>Oh hai, {currentUser.name}</p>
-            <p>Game: {currentGameId}</p>
+            <h2>Game: {currentGameId}</h2>
 
             {currentGameData.state == 'new' && (
               <button onClick={this.openGame.bind(this)}>Open Game</button>
@@ -472,6 +488,8 @@ class Index extends React.Component {
 
             {currentGameData.state == 'closed' && <p>This game is closed.</p>}
 
+            <h2>Questions ({(questions && questions.length) || 0})</h2>
+
             {questions &&
               questions.map((questionData, i) => (
                 <QuestionForm
@@ -497,6 +515,10 @@ class Index extends React.Component {
             )}
           </div>
         )}
+
+        <h2>Players ({(players && players.length) || 0})</h2>
+        {players &&
+          players.map((player, i) => <div key={i}>{player.name}</div>)}
       </div>
     );
   }
