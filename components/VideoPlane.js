@@ -28,9 +28,9 @@ class VideoPlane extends React.Component {
   }
 
   render() {
+    // <script src="http://reference.dashif.org/dash.js/nightly/dist/dash.all.min.js" />
     return (
       <>
-        <script src="http://reference.dashif.org/dash.js/nightly/dist/dash.all.min.js" />
         <VideoEl />
       </>
     );
