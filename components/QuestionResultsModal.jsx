@@ -13,6 +13,13 @@ class QuestionResultsModal extends React.Component {
     this.results = props.results;
     this.playerAnswer = props.playerAnswer;
     this.totalAnswers = this.results.reduce((a, b) => a + b);
+
+    console.log('this.playerAnswer', this.playerAnswer);
+    console.log('this.answerNumber', this.answerNumber);
+    console.log(
+      'this.playerAnswer == this.answerNumber',
+      this.playerAnswer == this.answerNumber
+    );
   }
 
   componentDidMount() {}
@@ -28,7 +35,7 @@ class QuestionResultsModal extends React.Component {
             correct={!!(i + 1 == this.answerNumber)}
             count={result}
             total={this.totalAnswers}
-            isPlayers={this.playerAnswer == this.answerNumber}
+            isPlayers={this.playerAnswer == i + 1}
           />
         ))}
       </Modal>

@@ -338,15 +338,21 @@ class Index extends React.Component {
       // Make sure the player exists in the list
       if (!playerAnswers[userId]) playerAnswers[userId] = [];
 
-      playerAnswers[userId][questionIndex] = !!(answerNumber == rightAnswer);
+      playerAnswers[userId][questionIndex] =
+        answerNumber == rightAnswer ? 1 : 0;
     });
 
+    let playerResults = {};
     let winnerIds = [];
     Object.keys(playerAnswers).forEach(userId => {
       const answers = playerAnswers[userId];
       const correct = answers.reduce((a, b) => a + b);
 
-      if (correct == this.state.questions.length) {
+      playerResults[userId] = {
+        correct: correct,
+      };
+
+      if (correct === this.state.questions.length) {
         winnerIds.push(userId);
       }
     });
@@ -359,15 +365,16 @@ class Index extends React.Component {
 
     let winners = [];
     playersSnapshot.forEach(docSnap => {
+      let { name } = docSnap.data();
+
+      if (playerResults[docSnap.id]) playerResults[docSnap.id].name = name;
+
       if (winnerIds.includes(docSnap.id)) {
-        let { name } = docSnap.data();
         winners.push({
           name: name,
         });
       }
     });
-
-    console.log('winners', winners);
 
     this.db
       .collection('games')
@@ -378,6 +385,10 @@ class Index extends React.Component {
       .then(docRef => {
         console.log('Showing Winners');
       });
+
+    this.setState({
+      playerResults: playerResults,
+    });
   }
 
   render() {
@@ -389,6 +400,7 @@ class Index extends React.Component {
       questions,
       questionsEdited,
       players,
+      playerResults,
     } = this.state;
 
     const currentQuestion = currentGameData && currentGameData.currentQuestion;
@@ -519,6 +531,18 @@ class Index extends React.Component {
         <h2>Players ({(players && players.length) || 0})</h2>
         {players &&
           players.map((player, i) => <div key={i}>{player.name}</div>)}
+
+        {playerResults && (
+          <div>
+            <h2>Player Results</h2>
+            {Object.keys(playerResults).map(playerId => (
+              <div key={playerId}>
+                {playerResults[playerId].name} (
+                {playerResults[playerId].correct})
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
