@@ -31,6 +31,7 @@ class Index extends React.Component {
     this.state = {
       user: undefined,
       gameId: undefined,
+      eliminated: false,
     };
   }
 
@@ -133,18 +134,15 @@ class Index extends React.Component {
     this.unsubscribeFromGame = this.db
       .collection('games')
       .doc(gameId)
-      .onSnapshot(
-        {
-          // Listen for document metadata changes
-          // includeMetadataChanges: true,
-        },
-        doc => {
-          this.setState({
-            gameId: gameId,
-            gameData: doc.data(),
-          });
-        }
-      );
+      .onSnapshot(doc => {
+        // let prevGameData = this.state.gameData
+        // if (prevGameData && prevGameData.currentQuestion && prevGameData.)
+
+        this.setState({
+          gameId: gameId,
+          gameData: doc.data(),
+        });
+      });
   }
 
   subscribeToGamePlayer(gameId, playerId) {
@@ -156,11 +154,19 @@ class Index extends React.Component {
       .collection('players')
       .doc(playerId)
       .onSnapshot(doc => {
-        console.log('subscribeToGamePlayer', doc.data());
+        let data = doc.data();
 
         this.setState({
-          playerData: doc.data(),
+          playerData: data,
         });
+
+        // Only update when true
+        console.log('data.eliminated', data.eliminated);
+        if (data.eliminated) {
+          this.setState({
+            eliminated: true,
+          });
+        }
       });
   }
 
@@ -208,17 +214,15 @@ class Index extends React.Component {
         answerNumber: answerNumber,
       })
       .then(docRef => {
-        console.log('answer', answerNumber);
         console.log('Submitted Answer. Document written with ID: ', docRef.id);
       })
       .catch(error => {
-        alert('Error adding answer');
         console.error('Error adding document: ', error);
       });
   }
 
   render() {
-    const { user, gameId, gameData, playerData } = this.state;
+    const { user, gameId, gameData, playerData, eliminated } = this.state;
     const currentQuestion = gameData && gameData.currentQuestion;
     const playerAnswer =
       currentQuestion &&
@@ -265,6 +269,8 @@ class Index extends React.Component {
         )}
 
         {user && <p>Oh hai, {user.name}</p>}
+
+        {eliminated && <p>Eliminated</p>}
 
         {user && !gameId && (
           <p>

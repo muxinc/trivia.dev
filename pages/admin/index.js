@@ -277,9 +277,16 @@ class Index extends React.Component {
       .orderBy('created', 'asc')
       .get();
 
+    let elimiatedPlayers = [];
+
     playerAnswersSnapshot.forEach(docSnap => {
-      const playerAnswerNumber = docSnap.data().answerNumber;
+      const playerAnswerData = docSnap.data();
+      const playerAnswerNumber = playerAnswerData.answerNumber;
       results[playerAnswerNumber - 1]++;
+
+      if (parseInt(playerAnswerNumber) !== parseInt(answerNumber)) {
+        elimiatedPlayers.push(playerAnswerData.userId);
+      }
     });
 
     this.db
@@ -296,6 +303,23 @@ class Index extends React.Component {
         alert('Error adding results');
         console.error('Error adding results: ', error);
       });
+
+    elimiatedPlayers.forEach(userId => {
+      this.db
+        .collection('games')
+        .doc(this.state.currentGameId)
+        .collection('players')
+        .doc(userId)
+        .update({
+          eliminated: true,
+        })
+        .then(docRef => {
+          //
+        })
+        .catch(error => {
+          console.error('Error eliminating player: ', error);
+        });
+    });
   }
 
   clearQuestionResults() {
@@ -315,7 +339,6 @@ class Index extends React.Component {
         this.saveQuestions();
       })
       .catch(error => {
-        alert('Error adding results');
         console.error('Error adding results: ', error);
       });
   }
