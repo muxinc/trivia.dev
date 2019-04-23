@@ -258,7 +258,6 @@ class Index extends React.Component {
         this.saveQuestions();
       })
       .catch(error => {
-        alert('Error adding question');
         console.error('Error adding document: ', error);
       });
   }
@@ -268,6 +267,18 @@ class Index extends React.Component {
     const currentQuestion = this.state.questions[questionNumber - 1];
     const answerNumber = currentQuestion.answerNumber;
     let results = [0, 0, 0];
+
+    let playersSnapshot = await this.db
+      .collection('games')
+      .doc(this.state.currentGameId)
+      .collection('players')
+      .get();
+
+    let playerAnswered = {};
+
+    playersSnapshot.forEach(docSnap => {
+      playerAnswered[docSnap.id] = false;
+    });
 
     let playerAnswersSnapshot = await this.db
       .collection('games')
@@ -283,6 +294,8 @@ class Index extends React.Component {
       const playerAnswerData = docSnap.data();
       const playerAnswerNumber = playerAnswerData.answerNumber;
       results[playerAnswerNumber - 1]++;
+
+      playerAnswered[playerAnswerData['userId']] = true;
 
       if (parseInt(playerAnswerNumber) !== parseInt(answerNumber)) {
         elimiatedPlayers.push(playerAnswerData.userId);
@@ -303,6 +316,12 @@ class Index extends React.Component {
         alert('Error adding results');
         console.error('Error adding results: ', error);
       });
+
+    Object.keys(playerAnswered).forEach(userId => {
+      if (!playerAnswered[userId]) {
+        elimiatedPlayers.push(userId);
+      }
+    });
 
     elimiatedPlayers.forEach(userId => {
       this.db
