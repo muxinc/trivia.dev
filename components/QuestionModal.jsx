@@ -9,9 +9,12 @@ class QuestionModal extends React.Component {
     this.expires = props.expires;
     this.question = props.question;
     this.answers = props.answers;
+    this.eliminated = props.eliminated;
 
     this.submitAnswer = number => {
       if (this.state.playerAnswer > 0) return;
+
+      if (this.eliminated > 0) return;
 
       this.setState({
         playerAnswer: number,
@@ -79,6 +82,8 @@ class QuestionModal extends React.Component {
       return '';
     }
 
+    const eliminated = this.eliminated;
+
     return (
       <QuestionModalWrapper>
         <p>{this.state.secondsLeft}</p>
@@ -92,6 +97,7 @@ class QuestionModal extends React.Component {
               this.submitAnswer(i + 1);
             }}
             key={i}
+            disabled={!!eliminated}
           >
             {answer}
           </AnswerButton>

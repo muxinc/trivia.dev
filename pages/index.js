@@ -25,6 +25,19 @@ const LoginModal = styled('div')`
   }
 `;
 
+const EliminatedBanner = styled('div')`
+  width: 100px;
+  margin: 0px auto;
+  background-color: #f00;
+  border-radius: 20px;
+  padding: 10px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-align: center;
+`;
+
 class Index extends React.Component {
   constructor(props) {
     super(props);
@@ -270,7 +283,7 @@ class Index extends React.Component {
 
         {user && <p>Oh hai, {user.name}</p>}
 
-        {eliminated && <p>Eliminated</p>}
+        {eliminated && <EliminatedBanner>Eliminated</EliminatedBanner>}
 
         {user && !gameId && (
           <p>
@@ -290,6 +303,7 @@ class Index extends React.Component {
             answers={currentQuestion.answers}
             playerAnswer={playerAnswer}
             submitAnswer={this.submitAnswer.bind(this)}
+            eliminated={eliminated}
           />
         )}
 
