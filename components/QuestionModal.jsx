@@ -47,6 +47,11 @@ class QuestionModal extends React.Component {
 
       if (this.isExpired()) {
         clearInterval(this.timerInterval);
+        setTimeout(e => {
+          this.setState({
+            hidden: true,
+          });
+        }, 2000);
       }
     };
 
@@ -78,15 +83,16 @@ class QuestionModal extends React.Component {
       }
     `;
 
-    if (this.isExpired()) {
-      return '';
-    }
-
+    const expired = this.isExpired();
     const eliminated = this.eliminated;
+
+    if (this.state.hidden) return '';
+
+    let disabled = !!(eliminated || expired);
 
     return (
       <QuestionModalWrapper>
-        <p>{this.state.secondsLeft}</p>
+        <p>{expired ? "Time's up!" : this.state.secondsLeft}</p>
         <p>
           <strong>Q:</strong> {this.question}
         </p>
@@ -97,7 +103,7 @@ class QuestionModal extends React.Component {
               this.submitAnswer(i + 1);
             }}
             key={i}
-            disabled={!!eliminated}
+            disabled={disabled}
           >
             {answer}
           </AnswerButton>
