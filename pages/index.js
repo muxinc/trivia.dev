@@ -13,16 +13,28 @@ import QuestionResultsModal from '../components/QuestionResultsModal';
 
 const LoginModal = styled.div`
   position: relative;
-  margin: 50px 20px;
-  background-color: #fff;
-  border-radius: 5px;
-  padding: 50px 20px;
-  color: #000;
+  text-align: center;
+
+  input {
+    display: block;
+    margin: 0px auto;
+    width: 260px;
+    height: 60px;
+    font-size: 20px;
+    font-weight: bold;
+    font-style: italic;
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: #fff;
+  }
 
   button {
-    border: 1px solid #000;
-    font-size: 16px;
-    border-radius: 5px;
+    width: 260px;
+    height: 60px;
+    font-size: 20px;
+    font-weight: bold;
+    font-style: italic;
+    background-color: #fff29c;
   }
 `;
 
@@ -45,13 +57,12 @@ const MainText = styled.div`
 const EliminatedBanner = styled('div')`
   width: 100px;
   margin: 0px auto;
-  background-color: #f00;
+  background-color: #a50606;
   border-radius: 20px;
   padding: 10px;
   color: #fff;
   font-size: 12px;
   font-weight: bold;
-  text-transform: uppercase;
   text-align: center;
 `;
 
@@ -318,20 +329,35 @@ class Index extends React.Component {
 
         <TitleBar>trivia.dev</TitleBar>
 
+        {winners && (
+          <MainText>
+            <h1>Winners!</h1>
+            {winners.map((winner, i) => (
+              <div key={i}>{winner.name}</div>
+            ))}
+          </MainText>
+        )}
+
         {gameId && gameData.state == 'started' && (
-          <VideoPlane src={this.state.streamURL} controls muted autoplay />
+          <VideoPlane
+            hide={!!winners}
+            src={this.state.streamURL}
+            controls
+            muted
+            autoplay
+          />
         )}
 
         {!user && (
           <LoginModal>
-            <p>Log in to play.</p>
-            <button onClick={this.login}>Log in with Github</button>
-            <p>Or just enter your name.</p>
-            <input id="loginName" type="text" />
-            <br />
-            <button onClick={this.loginWithName.bind(this)}>
-              Log in with Name
-            </button>
+            <MainText>
+              <h1>Welcome to trivia.dev!</h1>
+              <p>What should we call you?</p>
+              <input id="loginName" type="text" />
+              <button onClick={this.loginWithName.bind(this)}>
+                Enter the game
+              </button>
+            </MainText>
           </LoginModal>
         )}
 
@@ -400,16 +426,7 @@ class Index extends React.Component {
         )}
 
         {eliminated && !winners && (
-          <EliminatedBanner>Eliminated</EliminatedBanner>
-        )}
-
-        {winners && (
-          <div>
-            <h3>Here are the winners!</h3>
-            {winners.map((winner, i) => (
-              <div key={i}>{winner.name}</div>
-            ))}
-          </div>
+          <EliminatedBanner>Eliminated :(</EliminatedBanner>
         )}
       </GameFrame>
     );

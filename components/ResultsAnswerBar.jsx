@@ -13,53 +13,65 @@ class ResultsAnswerBar extends React.Component {
   }
 
   render() {
-    let color = 'gray';
+    let color = '#4B48B5';
+    let bgColor = '#0B0898';
+    let textColor = '#B3B2DD';
 
     if (this.correct) {
-      color = 'green';
+      color = '#30A300';
+      bgColor = '#1C5813';
+      textColor = '#fff';
     } else if (this.isPlayers) {
-      color = 'red';
+      color = '#A50606';
+      bgColor = '#5F0303';
+      textColor = '#fff';
     }
 
     const percent = Math.floor((this.count / this.total) * 100);
 
-    const Bar = styled('div')`
+    const Bar = styled.div`
       position: relative;
-      width: 100%;
       box-sizing: border-box;
-      border: 1px solid #ccc;
-      height: 40px;
+      width: 100%;
+      margin-bottom: 15px;
+      line-height: 20px;
+      border: 1px solid ${color};
+      background-color: ${bgColor};
+      box-sizing: border-box;
+      color: ${textColor};
+      height: 60px;
       margin-bottom: 10px;
-      border-radius: 20px;
+      display: flex;
+      align-items: center;
 
       div {
         position: absolute;
         width: ${percent + '%'};
         background-color: ${color};
-        height: 40px;
-        border-radius: 20px;
+        height: 60px;
       }
 
       p {
         position: absolute;
-        width: 100%;
+        width: 70%;
         margin: 0;
         padding-left: 20px;
-        color: #000;
+        color: inherit;
         font-weight: bold;
         text-align: left;
-        line-height: 40px;
+        line-height: 20px;
       }
 
       span {
         display: block;
         position: absolute;
         padding-right: 20px;
-        width: 100%;
+        right: 0;
+        width: 50%;
         text-align: right;
-        color: #000;
         font-weight: bold;
-        line-height: 40px;
+        line-height: 60px;
+        color: inherit;
       }
     `;
 

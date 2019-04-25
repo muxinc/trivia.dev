@@ -1,17 +1,30 @@
 import React from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import dashjs from 'dashjs';
 
 const VideoContainer = styled.div`
   width: 100%;
   text-align: center;
+
+  ${props =>
+    props.hide &&
+    css`
+    height 0;
+    width: 0;
+
+    video {
+      height 0;
+      width: 0;
+      border: none;
+    }
+  `}
 `;
 
 const VideoEl = styled.video`
   position: relative;
   margin: 20px auto;
   width: 320px;
-  height: 230px;
+  height: 180px;
   background-color: #000;
   border: 7px solid #ffef82;
 `;
@@ -38,7 +51,7 @@ class VideoPlane extends React.Component {
 
   render() {
     return (
-      <VideoContainer>
+      <VideoContainer hide={this.props.hide}>
         <VideoEl />
       </VideoContainer>
     );
