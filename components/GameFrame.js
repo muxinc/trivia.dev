@@ -7,7 +7,7 @@ export default styled('div')`
   height: 100%;
   top: 0;
   let: 0;
-  background-color: #333;
+  background-color: transparent;
   z-index: -1;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 `;

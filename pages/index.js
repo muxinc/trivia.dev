@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import initialize from '../lib/firebase';
 // import initPlayer from '../lib/player';
+
 import Head from 'next/head';
 import GameFrame from '../components/GameFrame';
 import VideoPlane from '../components/VideoPlane';
@@ -10,7 +11,7 @@ import AnswerButton from '../components/AnswerButton';
 import QuestionModal from '../components/QuestionModal';
 import QuestionResultsModal from '../components/QuestionResultsModal';
 
-const LoginModal = styled('div')`
+const LoginModal = styled.div`
   position: relative;
   margin: 50px 20px;
   background-color: #fff;
@@ -22,6 +23,22 @@ const LoginModal = styled('div')`
     border: 1px solid #000;
     font-size: 16px;
     border-radius: 5px;
+  }
+`;
+
+const MainText = styled.div`
+  padding: 20px;
+  color: #fff29c;
+  letter-spacing: 2px;
+  text-align: center;
+  text-shadow: 3px 3px 0 #000000;
+  font-family: Arial;
+  font-weight: bold;
+  font-style: italic;
+  text-align: center;
+
+  h1 {
+    font-size: 30px;
   }
 `;
 
@@ -72,10 +89,16 @@ class Index extends React.Component {
     // this.setUser(session.user);
   };
 
-  loginWithName(e) {
+  async loginWithName(e) {
     let name = document.querySelector('#loginName').value;
 
     if (!name) name = 'guest' + Math.floor(Math.random() * 1000);
+
+    await this.firebase
+      .auth()
+      .setPersistence(this.firebase.auth.Auth.Persistence.SESSION);
+
+    const session = await this.firebase.auth().signInAnonymously();
 
     this.setUser({
       displayName: name,
@@ -243,6 +266,33 @@ class Index extends React.Component {
       playerData.answers[currentQuestion.number - 1];
     const winners = gameData && gameData.winners;
 
+    let gameState;
+
+    if (!user) {
+      gameState = 'login';
+    } else if (!gameId) {
+      gameState = 'nogame';
+    } else {
+      if (gameData.state == 'open') {
+        gameState = 'waiting';
+      } else if (gameData.state == 'closed') {
+        gameState = 'ended';
+      } else if (winners) {
+        gameState = 'winners';
+      } else {
+        gameState = 'playing';
+      }
+    }
+
+    let stateBackgrounds = {
+      login: '/static/images/lightning@2x.jpg',
+      nogame: '/static/images/crystal-ball@2x.jpg',
+      waiting: '/static/images/boxer@2x.jpg',
+      playing: '/static/images/lightning@2x.jpg',
+      winners: '/static/images/winner@2x.jpg',
+      ended: '/static/images/kid-dog@2x.jpg',
+    };
+
     return (
       <GameFrame>
         <Head>
@@ -258,15 +308,19 @@ class Index extends React.Component {
             padding: 0;
             margin: 0;
             color: #fff;
+            background-image: url(${stateBackgrounds[gameState]});
+            background-size: cover;
           }
           * {
             box-sizing: border-box;
           }
         `}</style>
 
-        <VideoPlane src={this.state.streamURL} controls muted autoplay />
-
         <TitleBar>trivia.dev</TitleBar>
+
+        {gameId && gameData.state == 'started' && (
+          <VideoPlane src={this.state.streamURL} controls muted autoplay />
+        )}
 
         {!user && (
           <LoginModal>
@@ -281,19 +335,47 @@ class Index extends React.Component {
           </LoginModal>
         )}
 
-        {user && <p>Oh hai, {user.name}</p>}
-
-        {eliminated && <EliminatedBanner>Eliminated</EliminatedBanner>}
-
         {user && !gameId && (
-          <p>
-            There's no game starting right now. Try back when a show is
-            scheduled.
-          </p>
+          <MainText>
+            <h1>There's no game starting right now.</h1>
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <p>Hang out here with us or come back later</p>
+          </MainText>
         )}
 
         {user && gameId && gameData.state == 'open' && (
-          <p>You're in the game! ({gameId}) The game will start soon!</p>
+          <MainText>
+            <h1>You've entered the game!</h1>
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <br />
+            <p>Get ready, the game will begin shortly.</p>
+          </MainText>
         )}
 
         {currentQuestion && currentQuestion.expires >= Date.now() && (
@@ -315,6 +397,10 @@ class Index extends React.Component {
             results={currentQuestion.results}
             playerAnswer={playerAnswer}
           />
+        )}
+
+        {eliminated && !winners && (
+          <EliminatedBanner>Eliminated</EliminatedBanner>
         )}
 
         {winners && (
