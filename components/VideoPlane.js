@@ -33,12 +33,12 @@ class VideoPlane extends React.Component {
   componentDidMount() {
     let videoEl = document.querySelector('video');
     let player = dashjs.MediaPlayer().create();
-    // player.initialize(videoEl, 'https://f33c730c.ngrok.io/out.mpd', true);
-    player.initialize(
-      videoEl,
-      'https://akamaibroadcasteruseast.akamaized.net/cmaf/live/657078/akasource/out.mpd',
-      true
-    );
+    player.initialize(videoEl, 'https://mux.ngrok.io/out.mpd', true);
+    // player.initialize(
+    //   videoEl,
+    //   'https://akamaibroadcasteruseast.akamaized.net/cmaf/live/657078/akasource/out.mpd',
+    //   true
+    // );
 
     // player.setLowLatencyEnabled(true);
     player.setLiveDelay(4);
@@ -46,7 +46,7 @@ class VideoPlane extends React.Component {
     player.getDebug().setLogLevel(dashjs.Debug.LOG_LEVEL_INFO);
     videoEl.play();
     videoEl.controls = true;
-    videoEl.muted = true;
+    // videoEl.muted = true;
   }
 
   render() {
