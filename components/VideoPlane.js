@@ -46,6 +46,7 @@ class VideoPlane extends React.Component {
     player.getDebug().setLogLevel(dashjs.Debug.LOG_LEVEL_INFO);
     videoEl.play();
     videoEl.controls = true;
+    videoEl.autoplay = true;
     // videoEl.muted = true;
   }
 
