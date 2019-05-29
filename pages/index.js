@@ -3,39 +3,17 @@ import styled from 'styled-components';
 import initialize from '../lib/firebase';
 // import initPlayer from '../lib/player';
 
+import Button from '../components/Button';
 import Head from 'next/head';
 import GameFrame from '../components/GameFrame';
 import VideoPlane from '../components/VideoPlane';
 import TitleBar from '../components/TitleBar';
-import AnswerButton from '../components/AnswerButton';
 import QuestionModal from '../components/QuestionModal';
 import QuestionResultsModal from '../components/QuestionResultsModal';
 
 const LoginModal = styled.div`
   position: relative;
   text-align: center;
-
-  input {
-    display: block;
-    margin: 0px auto;
-    width: 260px;
-    height: 60px;
-    font-size: 20px;
-    font-weight: bold;
-    font-style: italic;
-    margin-bottom: 20px;
-    padding: 10px;
-    background-color: #fff;
-  }
-
-  button {
-    width: 260px;
-    height: 60px;
-    font-size: 20px;
-    font-weight: bold;
-    font-style: italic;
-    background-color: #fff29c;
-  }
 `;
 
 const MainText = styled.div`
@@ -95,9 +73,9 @@ class Index extends React.Component {
       .auth()
       .setPersistence(this.firebase.auth.Auth.Persistence.SESSION);
 
-    const session = await this.firebase.auth().signInWithPopup(authProvider);
+    const session = await this.firebase.auth().signInWithRedirect(authProvider);
 
-    // this.setUser(session.user);
+    this.setUser(session.user);
   };
 
   async loginWithName(e) {
@@ -307,7 +285,9 @@ class Index extends React.Component {
     return (
       <GameFrame>
         <Head>
-          <title>My page title</title>
+          <title>
+            Dev trivia for devs that want trivia about dev stuff | trivia.dev
+          </title>
           <meta
             name="viewport"
             content="initial-scale=1.0, width=device-width"
@@ -352,11 +332,10 @@ class Index extends React.Component {
           <LoginModal>
             <MainText>
               <h1>Welcome to trivia.dev!</h1>
-              <p>What should we call you?</p>
-              <input id="loginName" type="text" />
-              <button onClick={this.loginWithName.bind(this)}>
-                Enter the game
-              </button>
+              <p>But first...who are you?</p>
+              <Button onClick={this.login}>
+                Login with <img src="/static/images/github.svg" alt="github" />
+              </Button>
             </MainText>
           </LoginModal>
         )}
